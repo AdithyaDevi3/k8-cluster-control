@@ -1,0 +1,17 @@
+{
+  "name": "k8-cluster-control",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js",
+    "tools:check": "node src/server/scripts/checkTools.js",
+    "install:k8": "./install.sh"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.20.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "three": "^0.185.1"
+  }
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>K8 Cluster Control</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>K8 Cluster Control</h1>
+          <p>Immersive Kubernetes galaxy visualization with actionable cluster controls.</p>
+        </div>
+        <div class="status-summary">
+          <div id="toolStatus">Loading tool status...</div>
+          <button id="refreshButton">Refresh UI</button>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar">
+          <section class="panel">
+            <h2>Clusters</h2>
+            <div id="clusterList" class="cluster-list"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Commands</h2>
+            <div class="command-box">
+              <textarea id="commandInput" rows="4" placeholder="kubectl get pods --all-namespaces"></textarea>
+              <button id="runCommandButton">Run command</button>
+            </div>
+            <div class="command-box">
+              <textarea id="manifestInput" rows="6" placeholder="Paste Kubernetes manifest YAML or JSON here"></textarea>
+              <button id="applyManifestButton">Apply manifest</button>
+            </div>
+          </section>
+        </aside>
+
+        <main class="viewer-shell">
+          <div class="viewer-title">
+            <h2>Galaxy viewport</h2>
+            <p>Use mouse or touch to orbit, zoom, and inspect clusters.</p>
+          </div>
+          <div id="viewer" class="viewer"></div>
+        </main>
+
+        <aside class="details-panel">
+          <section class="panel">
+            <h2>Details</h2>
+            <div id="detailsContent" class="details-content">Select a cluster or object to inspect.</div>
+          </section>
+          <section class="panel">
+            <h2>Selected object</h2>
+            <div id="selectionContent" class="details-content">Click a pod or worker in the galaxy to inspect it.</div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module" src="/js/main.js"></script>
+  </body>
+</html>

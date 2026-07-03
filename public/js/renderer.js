@@ -77,10 +77,11 @@ function createGalaxyRenderer(container, onObjectSelected) {
     label.position.set(0, 7, 0);
 
     group.add(orb, label);
-    clustersGroup.add(group);
-
     const ring = createDodecagonRing();
     group.add(ring);
+
+    clusterIndex.set(cluster.id, group);
+    clustersGroup.add(group);
 
     return group;
   }
@@ -127,16 +128,16 @@ function createGalaxyRenderer(container, onObjectSelected) {
   }
 
   function clearClusterObjects() {
-    const objectNodes = clustersGroup.children.flatMap((group) => group.children.filter((child) => child.userData?.type === 'object'));
-    objectNodes.forEach((node) => node.parent?.remove(node));
+    clustersGroup.children = clustersGroup.children.filter((child) => child.userData?.type !== 'clusterObjectsGroup');
   }
 
   function renderClusterObjects(clusterId, objects) {
     clearClusterObjects();
-    const clusterGroup = clustersGroup.children.find((group) => group.children.some((child) => child.userData?.type === 'cluster' && child.userData.cluster.id === clusterId));
+    const clusterGroup = clusterIndex.get(clusterId);
     if (!clusterGroup) return;
 
     const objectGroup = new THREE.Group();
+    objectGroup.userData = { type: 'clusterObjectsGroup', clusterId };
     objectGroup.position.copy(clusterGroup.position);
     objectGroup.position.y = 0;
 
@@ -173,17 +174,20 @@ function createGalaxyRenderer(container, onObjectSelected) {
     if (!hits.length) return;
     const hit = hits[0].object;
     const { type } = hit.userData;
+
     if (type === 'cluster') {
       activeCluster = hit.userData.cluster;
       clusterChangeCallbacks.forEach((fn) => fn(activeCluster));
+      return;
     }
+
     if (type === 'object') {
       const object = hit.userData.object;
-      const cluster = clustersGroup.children
-        .flatMap((group) => group.children)
-        .find((node) => node.userData?.type === 'cluster' && group.position.equals(hit.object.parent.position))?.userData?.cluster;
-      onObjectSelected(cluster || { id: hit.userData.clusterId }, object);
-      objectActionCallbacks.forEach((fn) => fn(cluster || {id: hit.userData.clusterId}, object));
+      const clusterId = hit.userData.clusterId;
+      const clusterGroup = clusterIndex.get(clusterId);
+      const cluster = clusterGroup?.children.find((child) => child.userData?.type === 'cluster')?.userData?.cluster || { id: clusterId, name: clusterId };
+      onObjectSelected(cluster, object);
+      objectActionCallbacks.forEach((fn) => fn(cluster, object));
     }
   }
 

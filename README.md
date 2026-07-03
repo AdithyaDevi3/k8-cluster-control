@@ -7,6 +7,7 @@ A modular Kubernetes operating platform for immersive infrastructure visualizati
 This repository combines a lightweight Node.js backend with a browser-based 3D visualization frontend that renders cluster topology, worker nodes, pods, and resource dependencies as a navigable galaxy.
 
 The app is built to be extensible and production-ready:
+
 - Structured server code with route and service modules
 - Browser 3D renderer using Three.js for scalable cluster exploration
 - API endpoints for cluster probes, tool discovery, command execution, and manifest apply

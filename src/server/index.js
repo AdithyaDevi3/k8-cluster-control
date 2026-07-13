@@ -11,6 +11,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../public')));
+app.use('/vendor/three', express.static(path.join(__dirname, '../../node_modules/three')));
 
 app.use('/api/clusters', clusterRoutes);
 app.use('/api/tools', toolRoutes);

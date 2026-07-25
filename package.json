@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development node server.js",
+    "test": "node --test tests/*.test.js",
     "tools:check": "node src/server/scripts/checkTools.js",
     "install:k8": "./install.sh"
   },

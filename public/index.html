@@ -34,11 +34,53 @@
           </section>
 
           <section class="panel">
-            <h2>Commands</h2>
-            <div class="command-box">
-              <textarea id="commandInput" rows="4" placeholder="kubectl get pods --all-namespaces"></textarea>
-              <button id="runCommandButton">Run command</button>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Command assistant</p>
+                <h2>Ask Kubernetes</h2>
+              </div>
+              <span id="commandState" class="command-state idle">Idle</span>
             </div>
+            <div class="command-box command-workstation">
+              <label for="naturalCommandInput">Request</label>
+              <textarea id="naturalCommandInput" rows="4" placeholder="Scale the payments deployment to 5 replicas in production"></textarea>
+              <button id="interpretCommandButton">Generate command</button>
+
+              <div id="interpretationPanel" class="interpretation-panel" hidden>
+                <div class="interpretation-meta">
+                  <span id="riskBadge" class="risk-badge">Read</span>
+                  <span id="targetContext">No cluster selected</span>
+                </div>
+                <p id="commandExplanation"></p>
+                <div id="clarificationFields" class="clarification-fields"></div>
+                <button id="applyClarificationsButton" class="secondary-button" hidden>Apply adjustments</button>
+              </div>
+
+              <div id="commandPreviewPanel" class="command-preview" hidden>
+                <div class="field-heading">
+                  <label for="commandInput">Kubernetes syntax</label>
+                  <span>Editable before execution</span>
+                </div>
+                <textarea id="commandInput" rows="4" spellcheck="false"></textarea>
+                <label class="toggle-row" for="dryRunToggle">
+                  <input id="dryRunToggle" type="checkbox" />
+                  <span>Use server-side dry run when supported</span>
+                </label>
+                <button id="runCommandButton">Run command</button>
+              </div>
+
+              <div id="terminalPanel" class="terminal-panel" hidden>
+                <div class="terminal-bar">
+                  <span>Execution output</span>
+                  <span id="terminalStatus">Waiting</span>
+                </div>
+                <pre id="terminalOutput"></pre>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Manifest editor</h2>
             <div class="command-box">
               <textarea id="manifestInput" rows="6" placeholder="Paste Kubernetes manifest YAML or JSON here"></textarea>
               <button id="applyManifestButton">Apply manifest</button>
@@ -62,6 +104,10 @@
           <section class="panel">
             <h2>Selected object</h2>
             <div id="selectionContent" class="details-content">Click a pod or worker in the galaxy to inspect it.</div>
+          </section>
+          <section class="panel">
+            <h2>Activity</h2>
+            <div id="historyContent" class="history-content">No command activity yet.</div>
           </section>
         </aside>
       </div>

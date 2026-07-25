@@ -5,27 +5,100 @@ async function bootstrap() {
   const viewer = document.getElementById('viewer');
   const toolStatus = document.getElementById('toolStatus');
   const refreshButton = document.getElementById('refreshButton');
+  const interpretCommandButton = document.getElementById('interpretCommandButton');
   const runCommandButton = document.getElementById('runCommandButton');
+  const applyClarificationsButton = document.getElementById('applyClarificationsButton');
   const applyManifestButton = document.getElementById('applyManifestButton');
+  const naturalCommandInput = document.getElementById('naturalCommandInput');
   const commandInput = document.getElementById('commandInput');
   const manifestInput = document.getElementById('manifestInput');
+  const commandState = document.getElementById('commandState');
+  const interpretationPanel = document.getElementById('interpretationPanel');
+  const commandPreviewPanel = document.getElementById('commandPreviewPanel');
+  const clarificationFields = document.getElementById('clarificationFields');
+  const commandExplanation = document.getElementById('commandExplanation');
+  const riskBadge = document.getElementById('riskBadge');
+  const targetContext = document.getElementById('targetContext');
+  const dryRunToggle = document.getElementById('dryRunToggle');
+  const terminalPanel = document.getElementById('terminalPanel');
+  const terminalStatus = document.getElementById('terminalStatus');
+  const terminalOutput = document.getElementById('terminalOutput');
 
   const galaxy = createGalaxyRenderer(viewer, onObjectSelected);
   let clusters = [];
   let selectedCluster = null;
+  let interpretation = null;
 
   refreshButton.addEventListener('click', async () => {
     await refresh();
   });
 
+  interpretCommandButton.addEventListener('click', async () => {
+    await interpretNaturalLanguage();
+  });
+
+  naturalCommandInput.addEventListener('keydown', async (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      await interpretNaturalLanguage();
+    }
+  });
+
+  applyClarificationsButton.addEventListener('click', async () => {
+    const adjustments = {};
+    clarificationFields.querySelectorAll('[data-field]').forEach((input) => {
+      adjustments[input.dataset.field] = input.type === 'number' ? Number(input.value) : input.value;
+    });
+    await interpretNaturalLanguage(adjustments);
+  });
+
   runCommandButton.addEventListener('click', async () => {
     if (!selectedCluster) return;
-    await ui.executeCommand(selectedCluster.id, commandInput.value);
+    setCommandState('running', 'Running');
+    terminalPanel.hidden = false;
+    terminalStatus.textContent = 'Running';
+    terminalOutput.textContent = `$ ${commandInput.value}\n`;
+    let result = await ui.executeCommand(selectedCluster.id, commandInput.value, {
+      confirmed: false,
+      dryRun: dryRunToggle.checked
+    });
+
+    if (result.confirmationRequired) {
+      const action = result.risk === 'destructive' ? 'destructive operation' : 'cluster change';
+      const confirmed = window.confirm(`Confirm this ${action} on ${selectedCluster.name}?\n\n${commandInput.value}`);
+      if (!confirmed) {
+        terminalStatus.textContent = 'Cancelled';
+        terminalOutput.textContent += 'Execution cancelled by user.';
+        setCommandState('ready', 'Ready');
+        await refreshHistory();
+        return;
+      }
+      result = await ui.executeCommand(selectedCluster.id, commandInput.value, {
+        confirmed: true,
+        dryRun: dryRunToggle.checked
+      });
+    }
+
+    terminalStatus.textContent = result.success ? 'Completed' : 'Failed';
+    terminalOutput.textContent += result.output || result.error || 'No output';
+    setCommandState(result.success ? 'ready' : 'error', result.success ? 'Complete' : 'Failed');
+    await refreshHistory();
   });
 
   applyManifestButton.addEventListener('click', async () => {
     if (!selectedCluster) return;
-    await ui.applyManifest(selectedCluster.id, manifestInput.value);
+    let result = await ui.applyManifest(selectedCluster.id, manifestInput.value, { confirmed: false });
+    if (!result.confirmationRequired) {
+      await refreshHistory();
+      return;
+    }
+    const confirmed = window.confirm(`Confirm manifest apply on ${selectedCluster.name}?`);
+    if (!confirmed) {
+      await refreshHistory();
+      return;
+    }
+    result = await ui.applyManifest(selectedCluster.id, manifestInput.value, { confirmed: true });
+    await refreshHistory();
   });
 
   async function refresh() {
@@ -36,6 +109,7 @@ async function bootstrap() {
 
     clusters = fetchedClusters;
     selectedCluster = clusters[0] || null;
+    updateTargetContext();
 
     toolStatus.innerHTML = toolResult.tools
       .map((tool) => `<span class="status-pill">${tool.name}: ${tool.installed ? '✔️ ' + tool.version : '❌ missing'}</span>`)
@@ -43,10 +117,12 @@ async function bootstrap() {
 
     ui.renderClusterList(clusters, selectedCluster?.id, async (newCluster) => {
       selectedCluster = newCluster;
+      updateTargetContext();
       galaxy.selectCluster(newCluster.id);
       ui.renderClusterDetails(newCluster);
       const objects = await ui.fetchClusterObjects(newCluster.id);
       galaxy.renderClusterObjects(newCluster.id, objects);
+      await refreshHistory();
     });
 
     galaxy.renderClusters(clusters);
@@ -54,11 +130,13 @@ async function bootstrap() {
       ui.renderClusterDetails(selectedCluster);
       const objects = await ui.fetchClusterObjects(selectedCluster.id);
       galaxy.renderClusterObjects(selectedCluster.id, objects);
+      await refreshHistory();
     }
   }
 
   galaxy.onClusterChange(async (cluster) => {
     selectedCluster = cluster;
+    updateTargetContext();
     ui.renderClusterList(clusters, cluster.id, async (newCluster) => {
       selectedCluster = newCluster;
       galaxy.selectCluster(newCluster.id);
@@ -69,6 +147,7 @@ async function bootstrap() {
     const objects = await ui.fetchClusterObjects(cluster.id);
     galaxy.renderClusterObjects(cluster.id, objects);
     ui.renderClusterDetails(cluster);
+    await refreshHistory();
   });
 
   galaxy.onObjectAction(async (cluster, object) => {
@@ -77,6 +156,81 @@ async function bootstrap() {
 
   function onObjectSelected(cluster, object) {
     ui.renderSelectionDetails(cluster, object);
+  }
+
+  async function interpretNaturalLanguage(adjustments = {}) {
+    if (!selectedCluster) {
+      setCommandState('error', 'Select cluster');
+      return;
+    }
+
+    setCommandState('running', 'Interpreting');
+    interpretationPanel.hidden = false;
+    commandPreviewPanel.hidden = true;
+    terminalPanel.hidden = true;
+    clarificationFields.innerHTML = '';
+    const result = await ui.interpretCommand(selectedCluster.id, naturalCommandInput.value, adjustments);
+    interpretation = result;
+    await refreshHistory();
+    commandExplanation.textContent = result.explanation || result.error || 'Unable to interpret request.';
+    renderRisk(result.risk);
+
+    if (result.status === 'ready') {
+      commandInput.value = result.command;
+      commandPreviewPanel.hidden = false;
+      applyClarificationsButton.hidden = true;
+      dryRunToggle.checked = result.risk !== 'read' && result.dryRunSupported;
+      dryRunToggle.disabled = !result.dryRunSupported;
+      setCommandState('ready', 'Ready');
+      return;
+    }
+
+    if (result.status === 'needs_clarification') {
+      renderClarifications(result.questions);
+      applyClarificationsButton.hidden = false;
+      setCommandState('clarify', 'Needs details');
+      return;
+    }
+
+    applyClarificationsButton.hidden = true;
+    setCommandState('error', 'Unsupported');
+  }
+
+  function renderClarifications(questions) {
+    questions.forEach((question) => {
+      const wrapper = document.createElement('label');
+      wrapper.className = 'clarification-field';
+      wrapper.textContent = question.prompt;
+      const input = question.type === 'select' ? document.createElement('select') : document.createElement('input');
+      input.dataset.field = question.field;
+      input.type = question.type === 'number' ? 'number' : 'text';
+      if (question.type === 'number') input.min = '0';
+      if (question.type === 'select') {
+        question.options.forEach((option) => input.add(new Option(option, option)));
+      }
+      wrapper.appendChild(input);
+      clarificationFields.appendChild(wrapper);
+    });
+  }
+
+  function renderRisk(risk) {
+    riskBadge.className = `risk-badge ${risk || 'unknown'}`;
+    riskBadge.textContent = risk === 'read' ? 'Read only' : risk === 'write' ? 'Changes state' : risk === 'destructive' ? 'Destructive' : 'Needs review';
+  }
+
+  function setCommandState(state, label) {
+    commandState.className = `command-state ${state}`;
+    commandState.textContent = label;
+  }
+
+  function updateTargetContext() {
+    targetContext.textContent = selectedCluster ? `Target: ${selectedCluster.name} · ${selectedCluster.kubeContext}` : 'No cluster selected';
+  }
+
+  async function refreshHistory() {
+    if (!selectedCluster) return;
+    const events = await ui.fetchHistory(selectedCluster.id);
+    ui.renderHistory(events);
   }
 
   await refresh();

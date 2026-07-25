@@ -13,6 +13,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../public')));
 app.use('/vendor/three', express.static(path.join(__dirname, '../../node_modules/three')));
 
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get('/readyz', (req, res) => {
+  res.json({ status: 'ready' });
+});
+
 app.use('/api/clusters', clusterRoutes);
 app.use('/api/tools', toolRoutes);
 

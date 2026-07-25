@@ -1,6 +1,7 @@
 const clusterList = document.getElementById('clusterList');
 const detailsContent = document.getElementById('detailsContent');
 const selectionContent = document.getElementById('selectionContent');
+const historyContent = document.getElementById('historyContent');
 
 function renderClusterList(clusters, selectedClusterId, onSelect) {
   clusterList.innerHTML = '';
@@ -64,30 +65,60 @@ async function fetchToolStatus() {
   return res.json();
 }
 
-async function executeCommand(clusterId, command) {
+async function fetchHistory(clusterId) {
+  const res = await fetch(`/api/clusters/${clusterId}/history?limit=8`);
+  return res.json();
+}
+
+function renderHistory(events) {
+  historyContent.innerHTML = '';
+  if (!events.length) {
+    historyContent.textContent = 'No command activity yet.';
+    return;
+  }
+
+  events.forEach((event) => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    const title = event.type === 'interpretation' ? event.request : event.command || 'Manifest apply';
+    item.innerHTML = `
+      <div class="history-title">${escapeHtml(title)}</div>
+      <div class="history-meta"><span>${escapeHtml(event.type)}</span><span>${escapeHtml(event.outcome || event.status || '')}</span></div>
+    `;
+    historyContent.appendChild(item);
+  });
+}
+
+async function interpretCommand(clusterId, request, adjustments = {}) {
+  const res = await fetch(`/api/clusters/${clusterId}/interpret`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ request, adjustments })
+  });
+  return res.json();
+}
+
+async function executeCommand(clusterId, command, options = {}) {
   const res = await fetch(`/api/clusters/${clusterId}/command`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ command })
+    body: JSON.stringify({ command, confirmed: options.confirmed, dryRun: options.dryRun })
   });
   const result = await res.json();
-  selectionContent.innerHTML = '';
-  selectionContent.appendChild(createDetailCard('Command', escapeHtml(command)));
-  selectionContent.appendChild(createDetailCard('Output', `<pre>${escapeHtml(result.output || result.error || 'No output')}</pre>`));
-  return result;
+  return { ...result, httpStatus: res.status };
 }
 
-async function applyManifest(clusterId, manifest) {
+async function applyManifest(clusterId, manifest, options = {}) {
   const res = await fetch(`/api/clusters/${clusterId}/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ manifest })
+    body: JSON.stringify({ manifest, confirmed: options.confirmed, dryRun: options.dryRun })
   });
   const result = await res.json();
   selectionContent.innerHTML = '';
   selectionContent.appendChild(createDetailCard('Apply manifest', `<pre>${escapeHtml(manifest.substring(0, 300))}</pre>`));
   selectionContent.appendChild(createDetailCard('Result', `<pre>${escapeHtml(result.output || result.error || 'No output')}</pre>`));
-  return result;
+  return { ...result, httpStatus: res.status };
 }
 
 function escapeHtml(text) {
@@ -104,6 +135,9 @@ export const ui = {
   fetchClusters,
   fetchClusterObjects,
   fetchToolStatus,
+  fetchHistory,
+  renderHistory,
+  interpretCommand,
   executeCommand,
   applyManifest
 };

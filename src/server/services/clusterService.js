@@ -1,18 +1,18 @@
 const clusters = [
   {
     id: 'alpha',
-    name: 'alpha',
-    region: 'us-east',
+    name: process.env.CLUSTER_NAME || 'alpha',
+    region: process.env.CLUSTER_REGION || 'us-east',
     status: 'ready',
-    kubeContext: 'alpha-context',
-    description: 'Demo cluster running in a development environment.',
+    kubeContext: process.env.KUBE_CONTEXT || 'alpha-context',
+    description: process.env.CLUSTER_DESCRIPTION || 'Primary Kubernetes cluster.',
     metadata: {
       createdAt: '2026-07-02T00:00:00Z',
       nodes: 3,
       pods: 24
     }
   },
-  {
+  ...(process.env.NODE_ENV === 'production' ? [] : [{
     id: 'beta',
     name: 'beta',
     region: 'us-west',
@@ -24,7 +24,7 @@ const clusters = [
       nodes: 5,
       pods: 62
     }
-  }
+  }])
 ];
 
 const clusterObjects = {

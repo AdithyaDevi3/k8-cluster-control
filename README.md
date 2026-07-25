@@ -10,7 +10,9 @@ The app is built to be extensible and production-ready:
 
 - Structured server code with route and service modules
 - Browser 3D renderer using Three.js for scalable cluster exploration
-- API endpoints for cluster probes, tool discovery, command execution, and manifest apply
+- Interactive English-to-`kubectl` command generation with guided clarification
+- Editable command previews, risk classification, dry-run support, and explicit confirmation
+- API endpoints for command interpretation, execution, activity history, and manifest apply
 - Comprehensive documentation and workflow guidance in `docs/`
 
 ## Quick start
@@ -44,8 +46,13 @@ That starts the backend server and serves the frontend app for fast editing.
 
 - Visual 3D cluster galaxy with ring and pod/worker representations
 - Cluster selection and interactive object picking
+- Deterministic English interpretation for get, describe, logs, scale, restart, and delete operations
+- Guided adjustments when resource names, types, or replica counts are missing
+- Safe argument-based `kubectl` execution without a shell
+- Read/write/destructive risk classification and server-enforced confirmation
+- Bounded in-memory command activity history
 - Live command execution through `kubectl` if installed
-- Simulated manifest apply for `kubectl`-unavailable environments
+- Kubernetes deployment, health probes, in-cluster authentication, and opt-in operator RBAC
 - Tool discovery for Docker, Kind, and `kubectl`
 
 ## Future direction

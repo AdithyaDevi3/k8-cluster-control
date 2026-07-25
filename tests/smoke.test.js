@@ -50,6 +50,42 @@ test('serves the frontend and three.js assets', async () => {
     const indexRes = await fetch('http://127.0.0.1:3100/');
     assert.equal(indexRes.status, 200);
 
+    const healthRes = await fetch('http://127.0.0.1:3100/healthz');
+    assert.equal(healthRes.status, 200);
+
+    const interpretRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/interpret', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request: 'scale deployment payments to 4 replicas in production' })
+    });
+    assert.equal(interpretRes.status, 200);
+    const interpretation = await interpretRes.json();
+    assert.equal(interpretation.command, 'kubectl scale deployment/payments --replicas=4 --namespace production');
+
+    const commandRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: interpretation.command })
+    });
+    assert.equal(commandRes.status, 409);
+    const commandResult = await commandRes.json();
+    assert.equal(commandResult.confirmationRequired, true);
+
+    const historyRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/history');
+    assert.equal(historyRes.status, 200);
+    const history = await historyRes.json();
+    assert.ok(history.some((event) => event.type === 'interpretation'));
+    assert.ok(history.some((event) => event.type === 'command'));
+
+    const applyRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manifest: 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example' })
+    });
+    assert.equal(applyRes.status, 409);
+    const applyResult = await applyRes.json();
+    assert.equal(applyResult.confirmationRequired, true);
+
     const threeRes = await fetch('http://127.0.0.1:3100/vendor/three/build/three.module.js');
     assert.equal(threeRes.status, 200);
     const text = await threeRes.text();

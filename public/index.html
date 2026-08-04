@@ -37,14 +37,14 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Command assistant</p>
-                <h2>Ask Kubernetes</h2>
+                <h2>Convert to text commands</h2>
               </div>
               <span id="commandState" class="command-state idle">Idle</span>
             </div>
             <div class="command-box command-workstation">
               <label for="naturalCommandInput">Request</label>
               <textarea id="naturalCommandInput" rows="4" placeholder="Scale the payments deployment to 5 replicas in production"></textarea>
-              <button id="interpretCommandButton">Generate command</button>
+              <button id="interpretCommandButton">Convert to text command</button>
 
               <div id="interpretationPanel" class="interpretation-panel" hidden>
                 <div class="interpretation-meta">
@@ -58,7 +58,7 @@
 
               <div id="commandPreviewPanel" class="command-preview" hidden>
                 <div class="field-heading">
-                  <label for="commandInput">Kubernetes syntax</label>
+                  <label for="commandInput">kubectl text command</label>
                   <span>Editable before execution</span>
                 </div>
                 <textarea id="commandInput" rows="4" spellcheck="false"></textarea>

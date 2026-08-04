@@ -151,11 +151,30 @@ async function bootstrap() {
   });
 
   galaxy.onObjectAction(async (cluster, object) => {
-    ui.renderSelectionDetails(cluster, object);
+    ui.renderSelectionDetails(cluster, object, {
+      onUseCommand: loadObjectCommand
+    });
   });
 
   function onObjectSelected(cluster, object) {
-    ui.renderSelectionDetails(cluster, object);
+    ui.renderSelectionDetails(cluster, object, {
+      onUseCommand: loadObjectCommand
+    });
+  }
+
+  function loadObjectCommand(command, object, cluster) {
+    commandInput.value = command;
+    commandPreviewPanel.hidden = false;
+    interpretationPanel.hidden = false;
+    terminalPanel.hidden = true;
+    applyClarificationsButton.hidden = true;
+    clarificationFields.innerHTML = '';
+    commandExplanation.textContent = `${object.label} on ${cluster.name} is loaded as a kubectl text command.`;
+    riskBadge.className = 'risk-badge read';
+    riskBadge.textContent = 'Loaded command';
+    dryRunToggle.checked = false;
+    dryRunToggle.disabled = true;
+    setCommandState('ready', 'Loaded');
   }
 
   async function interpretNaturalLanguage(adjustments = {}) {

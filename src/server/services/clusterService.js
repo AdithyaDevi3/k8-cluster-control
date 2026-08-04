@@ -29,13 +29,13 @@ const clusters = [
 
 const clusterObjects = {
   alpha: [
-    { id: 'alpha-app', type: 'Deployment', label: 'frontend', x: 0.2, y: 0.3, command: 'get deployments', kind: 'Deployment', status: 'healthy' },
-    { id: 'alpha-db', type: 'StatefulSet', label: 'database', x: -0.2, y: 0.6, command: 'get statefulsets', kind: 'StatefulSet', status: 'healthy' },
-    { id: 'alpha-svc', type: 'Service', label: 'api-service', x: 0.7, y: -0.3, command: 'get svc', kind: 'Service', status: 'available' }
+    { id: 'alpha-app', type: 'Deployment', label: 'frontend', x: 0.2, y: 0.3, command: 'kubectl get deployments frontend', kind: 'Deployment', status: 'healthy' },
+    { id: 'alpha-db', type: 'StatefulSet', label: 'database', x: -0.2, y: 0.6, command: 'kubectl get statefulsets database', kind: 'StatefulSet', status: 'healthy' },
+    { id: 'alpha-svc', type: 'Service', label: 'api-service', x: 0.7, y: -0.3, command: 'kubectl get svc api-service', kind: 'Service', status: 'available' }
   ],
   beta: [
-    { id: 'beta-app', type: 'Deployment', label: 'worker', x: -0.4, y: 0.4, command: 'get deployments', kind: 'Deployment', status: 'scaling' },
-    { id: 'beta-cache', type: 'Pod', label: 'redis', x: 0.7, y: 0.7, command: 'get pods', kind: 'Pod', status: 'running' }
+    { id: 'beta-app', type: 'Deployment', label: 'worker', x: -0.4, y: 0.4, command: 'kubectl get deployments worker', kind: 'Deployment', status: 'scaling' },
+    { id: 'beta-cache', type: 'Pod', label: 'redis', x: 0.7, y: 0.7, command: 'kubectl get pods redis', kind: 'Pod', status: 'running' }
   ]
 };
 

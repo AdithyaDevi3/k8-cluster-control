@@ -3,6 +3,12 @@ const detailsContent = document.getElementById('detailsContent');
 const selectionContent = document.getElementById('selectionContent');
 const historyContent = document.getElementById('historyContent');
 
+function normalizeKubectlCommand(command) {
+  const text = String(command || '').trim();
+  if (!text) return '';
+  return text.startsWith('kubectl ') ? text : `kubectl ${text}`;
+}
+
 function renderClusterList(clusters, selectedClusterId, onSelect) {
   clusterList.innerHTML = '';
   clusters.forEach((cluster) => {
@@ -34,13 +40,24 @@ function renderClusterDetails(cluster) {
   detailsContent.appendChild(createDetailCard('Nodes', cluster.metadata?.nodes ?? 'unknown'));
 }
 
-function renderSelectionDetails(cluster, object) {
+function renderSelectionDetails(cluster, object, actions = {}) {
   selectionContent.innerHTML = '';
   selectionContent.appendChild(createDetailCard('Cluster', cluster.name));
   selectionContent.appendChild(createDetailCard('Object', object.label));
   selectionContent.appendChild(createDetailCard('Type', object.type));
   selectionContent.appendChild(createDetailCard('Status', object.status));
-  selectionContent.appendChild(createDetailCard('Command', object.command));
+
+  const command = normalizeKubectlCommand(object.command);
+  const commandCard = createDetailCard('Text command', command);
+  if (actions.onUseCommand) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary-button detail-action';
+    button.textContent = 'Use text command';
+    button.addEventListener('click', () => actions.onUseCommand(command, object, cluster));
+    commandCard.appendChild(button);
+  }
+  selectionContent.appendChild(commandCard);
 }
 
 function createDetailCard(title, body) {

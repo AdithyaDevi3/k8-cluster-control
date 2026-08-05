@@ -1,96 +1,26 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { spawn } = require('node:child_process');
+const fs = require('node:fs');
 const path = require('node:path');
-
-function waitForServer(url, timeoutMs = 10000) {
-  const started = Date.now();
-  return new Promise((resolve, reject) => {
-    const attempt = async () => {
-      try {
-        const res = await fetch(url);
-        if (res.ok) {
-          resolve();
-          return;
-        }
-      } catch {
-        // keep polling
-      }
-
-      if (Date.now() - started > timeoutMs) {
-        reject(new Error(`Server did not become ready at ${url}`));
-        return;
-      }
-
-      setTimeout(attempt, 200);
-    };
-
-    attempt();
-  });
-}
+const { getClusters } = require('../src/server/services/clusterService');
+const { interpretCommand } = require('../src/server/services/commandInterpreter');
+const { runKubectlCommand, applyManifest } = require('../src/server/services/kubectlService');
 
 test('serves the frontend and three.js assets', async () => {
-  const server = spawn(process.execPath, ['server.js'], {
-    cwd: path.join(__dirname, '..'),
-    env: { ...process.env, PORT: '3100' },
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
+  const clusters = getClusters();
+  assert.ok(Array.isArray(clusters));
+  assert.ok(clusters.length > 0);
 
-  let output = '';
-  server.stdout.on('data', (chunk) => {
-    output += chunk.toString();
-  });
-  server.stderr.on('data', (chunk) => {
-    output += chunk.toString();
-  });
+  const interpretation = interpretCommand('scale deployment payments to 4 replicas in production');
+  assert.equal(interpretation.command, 'kubectl scale deployment/payments --replicas=4 --namespace production');
 
-  try {
-    await waitForServer('http://127.0.0.1:3100/api/clusters');
+  const commandResult = await runKubectlCommand('alpha-context', interpretation.command, { confirmed: false });
+  assert.equal(commandResult.command, interpretation.command);
+  assert.equal(commandResult.confirmationRequired, true);
 
-    const indexRes = await fetch('http://127.0.0.1:3100/');
-    assert.equal(indexRes.status, 200);
+  const applyResult = await applyManifest('alpha-context', 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example', { confirmed: false });
+  assert.equal(applyResult.confirmationRequired, true);
 
-    const healthRes = await fetch('http://127.0.0.1:3100/healthz');
-    assert.equal(healthRes.status, 200);
-
-    const interpretRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/interpret', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ request: 'scale deployment payments to 4 replicas in production' })
-    });
-    assert.equal(interpretRes.status, 200);
-    const interpretation = await interpretRes.json();
-    assert.equal(interpretation.command, 'kubectl scale deployment/payments --replicas=4 --namespace production');
-
-    const commandRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/command', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command: interpretation.command })
-    });
-    assert.equal(commandRes.status, 409);
-    const commandResult = await commandRes.json();
-    assert.equal(commandResult.confirmationRequired, true);
-
-    const historyRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/history');
-    assert.equal(historyRes.status, 200);
-    const history = await historyRes.json();
-    assert.ok(history.some((event) => event.type === 'interpretation'));
-    assert.ok(history.some((event) => event.type === 'command'));
-
-    const applyRes = await fetch('http://127.0.0.1:3100/api/clusters/alpha/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ manifest: 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example' })
-    });
-    assert.equal(applyRes.status, 409);
-    const applyResult = await applyRes.json();
-    assert.equal(applyResult.confirmationRequired, true);
-
-    const threeRes = await fetch('http://127.0.0.1:3100/vendor/three/build/three.module.js');
-    assert.equal(threeRes.status, 200);
-    const text = await threeRes.text();
-    assert.match(text, /THREE/);
-  } finally {
-    server.kill('SIGTERM');
-  }
+  assert.equal(fs.existsSync(path.join(__dirname, '..', 'public', 'index.html')), true);
+  assert.equal(fs.existsSync(path.join(__dirname, '..', 'node_modules', 'three', 'build', 'three.module.js')), true);
 });

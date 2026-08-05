@@ -6,6 +6,8 @@ A modular Kubernetes operating platform for immersive infrastructure visualizati
 
 This repository combines a lightweight Node.js backend with a browser-based 3D visualization frontend that renders cluster topology, worker nodes, pods, and resource dependencies as a navigable galaxy.
 
+It also includes a command-line interface for terminal-first workflows, so you can inspect clusters, check local tool availability, and turn English requests into `kubectl` commands without opening the browser.
+
 The app is built to be extensible and production-ready:
 
 - Structured server code with route and service modules
@@ -24,6 +26,19 @@ npm start
 ```
 
 Then open `http://localhost:3000`.
+
+## Command line
+
+Use the CLI directly:
+
+```bash
+npm run cli -- clusters
+npm run cli -- tools
+npm run cli -- interpret "scale deployment payments to 5 replicas in production"
+npm run cli -- kubectl --cluster alpha get pods
+```
+
+If you install the package locally, the `k8-cluster-control` binary is also available on your path.
 
 ## Development
 

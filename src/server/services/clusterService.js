@@ -1,5 +1,6 @@
 const k8s = require('@kubernetes/client-node');
 const logger = require('../utils/logger');
+const layoutService = require('./layoutService');
 
 // Cache for discovered clusters
 let clustersCache = null;
@@ -155,7 +156,7 @@ async function getClusterObjects(clusterId, contextName) {
     const objects = [];
 
     // Add deployments to visualization
-    deployments.forEach((deployment, idx) => {
+    deployments.forEach((deployment) => {
       objects.push({
         id: `${clusterId}-deploy-${deployment.namespace}-${deployment.name}`,
         type: 'Deployment',
@@ -164,14 +165,12 @@ async function getClusterObjects(clusterId, contextName) {
         namespace: deployment.namespace,
         status: deployment.replicas.ready === deployment.replicas.desired ? 'healthy' : 'degraded',
         replicas: deployment.replicas,
-        x: Math.cos(idx * 0.5) * 0.5,
-        y: Math.sin(idx * 0.5) * 0.5,
         metadata: deployment
       });
     });
 
     // Add services to visualization
-    services.forEach((service, idx) => {
+    services.forEach((service) => {
       objects.push({
         id: `${clusterId}-svc-${service.namespace}-${service.name}`,
         type: 'Service',
@@ -180,14 +179,12 @@ async function getClusterObjects(clusterId, contextName) {
         namespace: service.namespace,
         status: 'available',
         serviceType: service.type,
-        x: Math.cos(idx * 0.7 + 1) * 0.7,
-        y: Math.sin(idx * 0.7 + 1) * 0.7,
         metadata: service
       });
     });
 
     // Add standalone pods (not managed by deployments)
-    pods.forEach((pod, idx) => {
+    pods.forEach((pod) => {
       // Skip pods that are owned by deployments or other controllers
       if (pod.ownerReferences && pod.ownerReferences.length > 0) {
         return;
@@ -201,14 +198,24 @@ async function getClusterObjects(clusterId, contextName) {
         namespace: pod.namespace,
         status: pod.status.toLowerCase(),
         ready: pod.ready,
-        x: Math.cos(idx * 0.9 + 2) * 0.9,
-        y: Math.sin(idx * 0.9 + 2) * 0.9,
         metadata: pod
       });
     });
 
-    logger.info(`Retrieved ${objects.length} objects for cluster ${clusterId}`);
-    return objects;
+    // Apply intelligent layout algorithm
+    // Use grouped layout for better namespace organization
+    const layoutStrategy = process.env.LAYOUT_STRATEGY || 'grouped';
+    const layoutOptions = {
+      groupSpacing: 1.2,
+      innerSpacing: 0.15,
+      minDistance: 0.15,
+      bounds: 1.5
+    };
+    
+    const positioned = layoutService.applyLayout(objects, layoutStrategy, layoutOptions);
+
+    logger.info(`Retrieved ${positioned.length} objects for cluster ${clusterId} using ${layoutStrategy} layout`);
+    return positioned;
   } catch (error) {
     logger.error(`Failed to get objects for cluster ${clusterId}:`, error.message);
     return [];

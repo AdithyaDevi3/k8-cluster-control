@@ -131,14 +131,88 @@ function getClusterById(clusterId) {
 }
 
 /**
- * Gets objects for a specific cluster.
- * This will eventually fetch live resources from the cluster.
- * For now, returns an empty array as placeholder.
+ * Gets objects for a specific cluster by fetching live resources.
+ * @param {string} clusterId - The cluster ID
+ * @param {string} contextName - The kubeconfig context name
+ * @returns {Promise<Array>} Array of cluster objects for visualization
  */
-function getClusterObjects(clusterId) {
-  // TODO: Implement live resource discovery from the actual cluster
-  // This should query the cluster for pods, deployments, services, etc.
-  return [];
+async function getClusterObjects(clusterId, contextName) {
+  if (!contextName) {
+    logger.warn(`No context provided for cluster ${clusterId}`);
+    return [];
+  }
+
+  try {
+    const resourceService = require('./resourceService');
+    
+    // Fetch all resources in parallel
+    const [pods, deployments, services] = await Promise.all([
+      resourceService.getPods(contextName).catch(() => []),
+      resourceService.getDeployments(contextName).catch(() => []),
+      resourceService.getServices(contextName).catch(() => [])
+    ]);
+
+    const objects = [];
+
+    // Add deployments to visualization
+    deployments.forEach((deployment, idx) => {
+      objects.push({
+        id: `${clusterId}-deploy-${deployment.namespace}-${deployment.name}`,
+        type: 'Deployment',
+        kind: 'Deployment',
+        label: deployment.name,
+        namespace: deployment.namespace,
+        status: deployment.replicas.ready === deployment.replicas.desired ? 'healthy' : 'degraded',
+        replicas: deployment.replicas,
+        x: Math.cos(idx * 0.5) * 0.5,
+        y: Math.sin(idx * 0.5) * 0.5,
+        metadata: deployment
+      });
+    });
+
+    // Add services to visualization
+    services.forEach((service, idx) => {
+      objects.push({
+        id: `${clusterId}-svc-${service.namespace}-${service.name}`,
+        type: 'Service',
+        kind: 'Service',
+        label: service.name,
+        namespace: service.namespace,
+        status: 'available',
+        serviceType: service.type,
+        x: Math.cos(idx * 0.7 + 1) * 0.7,
+        y: Math.sin(idx * 0.7 + 1) * 0.7,
+        metadata: service
+      });
+    });
+
+    // Add standalone pods (not managed by deployments)
+    pods.forEach((pod, idx) => {
+      // Skip pods that are owned by deployments or other controllers
+      if (pod.ownerReferences && pod.ownerReferences.length > 0) {
+        return;
+      }
+
+      objects.push({
+        id: `${clusterId}-pod-${pod.namespace}-${pod.name}`,
+        type: 'Pod',
+        kind: 'Pod',
+        label: pod.name,
+        namespace: pod.namespace,
+        status: pod.status.toLowerCase(),
+        ready: pod.ready,
+        x: Math.cos(idx * 0.9 + 2) * 0.9,
+        y: Math.sin(idx * 0.9 + 2) * 0.9,
+        metadata: pod
+      });
+    });
+
+    logger.info(`Retrieved ${objects.length} objects for cluster ${clusterId}`);
+    return objects;
+  } catch (error) {
+    logger.error(`Failed to get objects for cluster ${clusterId}:`, error.message);
+    return [];
+  }
 }
 
 /**

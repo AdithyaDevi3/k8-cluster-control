@@ -257,6 +257,24 @@ function renderPodDetails(cluster, pod) {
     selectionContent.appendChild(eventCard);
   }
   
+  // View Logs button
+  const logsButtonCard = document.createElement('div');
+  logsButtonCard.className = 'detail-card';
+  logsButtonCard.innerHTML = '<strong>Actions</strong>';
+  
+  const viewLogsBtn = document.createElement('button');
+  viewLogsBtn.textContent = 'View Logs';
+  viewLogsBtn.className = 'btn-view-logs';
+  viewLogsBtn.style.cssText = 'padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; margin-top: 8px;';
+  viewLogsBtn.onclick = () => {
+    if (window.logsViewer) {
+      window.logsViewer.show(cluster.id, pod.namespace, pod.name);
+    }
+  };
+  
+  logsButtonCard.appendChild(viewLogsBtn);
+  selectionContent.appendChild(logsButtonCard);
+  
   // Labels
   if (pod.labels && Object.keys(pod.labels).length > 0) {
     const labelsCard = document.createElement('div');

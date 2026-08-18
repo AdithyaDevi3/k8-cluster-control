@@ -131,6 +131,7 @@ function createGalaxyRenderer(container, onObjectSelected) {
     clustersGroup.children = clustersGroup.children.filter((child) => child.userData?.type !== 'clusterObjectsGroup');
   }
 
+  // GPU-instanced rendering for efficient handling of thousands of pods
   function renderClusterObjects(clusterId, objects) {
     clearClusterObjects();
     const clusterGroup = clusterIndex.get(clusterId);
@@ -141,9 +142,64 @@ function createGalaxyRenderer(container, onObjectSelected) {
     objectGroup.position.copy(clusterGroup.position);
     objectGroup.position.y = 0;
 
+    // Group objects by type for instancing
+    const objectsByType = {};
     objects.forEach((object) => {
-      const node = createClusterObjectNode(clusterId, object);
-      objectGroup.add(node);
+      const type = object.type || 'Unknown';
+      if (!objectsByType[type]) {
+        objectsByType[type] = [];
+      }
+      objectsByType[type].push(object);
+    });
+
+    // Create instanced meshes for each type
+    Object.entries(objectsByType).forEach(([type, typeObjects]) => {
+      const count = typeObjects.length;
+      const geometry = new THREE.SphereGeometry(1.3, 16, 16);
+      
+      // Color based on object type
+      const color = type === 'Pod' ? 0xfccb0d : 
+                    type === 'Deployment' ? 0x7c3aed :
+                    type === 'Service' ? 0x10b981 : 0x6366f1;
+      
+      const material = new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: 0x1f2937,
+        roughness: 0.25,
+        metalness: 0.2
+      });
+
+      const instancedMesh = new THREE.InstancedMesh(geometry, material, count);
+      instancedMesh.userData = { 
+        type: 'instancedObjects', 
+        clusterId, 
+        objectType: type,
+        instances: [] // Store object data for each instance
+      };
+
+      const matrix = new THREE.Matrix4();
+      const position = new THREE.Vector3();
+      const rotation = new THREE.Quaternion();
+      const scale = new THREE.Vector3(1, 1, 1);
+
+      typeObjects.forEach((object, index) => {
+        const x = object.x * 15;
+        const z = object.y * 15;
+        const y = 2 + Math.random() * 5;
+        
+        position.set(x, y, z);
+        matrix.compose(position, rotation, scale);
+        instancedMesh.setMatrixAt(index, matrix);
+        
+        // Store instance data for raycasting
+        instancedMesh.userData.instances[index] = {
+          object,
+          position: position.clone()
+        };
+      });
+
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      objectGroup.add(instancedMesh);
     });
 
     clustersGroup.add(objectGroup);
@@ -172,22 +228,38 @@ function createGalaxyRenderer(container, onObjectSelected) {
   function handlePointerDown(event) {
     const hits = getIntersects(event);
     if (!hits.length) return;
-    const hit = hits[0].object;
-    const { type } = hit.userData;
+    const hit = hits[0];
+    const hitObject = hit.object;
+    const { type } = hitObject.userData;
 
     if (type === 'cluster') {
-      activeCluster = hit.userData.cluster;
+      activeCluster = hitObject.userData.cluster;
       clusterChangeCallbacks.forEach((fn) => fn(activeCluster));
       return;
     }
 
+    // Handle legacy individual meshes
     if (type === 'object') {
-      const object = hit.userData.object;
-      const clusterId = hit.userData.clusterId;
+      const object = hitObject.userData.object;
+      const clusterId = hitObject.userData.clusterId;
       const clusterGroup = clusterIndex.get(clusterId);
       const cluster = clusterGroup?.children.find((child) => child.userData?.type === 'cluster')?.userData?.cluster || { id: clusterId, name: clusterId };
       onObjectSelected(cluster, object);
       objectActionCallbacks.forEach((fn) => fn(cluster, object));
+      return;
+    }
+
+    // Handle instanced meshes
+    if (type === 'instancedObjects' && hit.instanceId !== undefined) {
+      const instanceData = hitObject.userData.instances[hit.instanceId];
+      if (instanceData) {
+        const object = instanceData.object;
+        const clusterId = hitObject.userData.clusterId;
+        const clusterGroup = clusterIndex.get(clusterId);
+        const cluster = clusterGroup?.children.find((child) => child.userData?.type === 'cluster')?.userData?.cluster || { id: clusterId, name: clusterId };
+        onObjectSelected(cluster, object);
+        objectActionCallbacks.forEach((fn) => fn(cluster, object));
+      }
     }
   }
 

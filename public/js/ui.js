@@ -58,6 +58,26 @@ function renderSelectionDetails(cluster, object, actions = {}) {
     commandCard.appendChild(button);
   }
   selectionContent.appendChild(commandCard);
+
+  // Add Edit Manifest button for supported resource types
+  if (object.type === 'pod' || object.type === 'deployment' || object.type === 'service') {
+    const manifestCard = createDetailCard('Manifest', 'Edit YAML configuration');
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.className = 'secondary-button detail-action';
+    editButton.textContent = 'Edit Manifest';
+    editButton.addEventListener('click', () => {
+      if (window.initManifestEditor) {
+        const namespace = object.namespace || 'default';
+        const name = object.name || object.label;
+        const kind = object.type === 'pod' ? 'pod' : 
+                     object.type === 'deployment' ? 'deployment' : 'service';
+        window.initManifestEditor(cluster.name, kind, namespace, name);
+      }
+    });
+    manifestCard.appendChild(editButton);
+    selectionContent.appendChild(manifestCard);
+  }
 }
 
 function createDetailCard(title, body) {

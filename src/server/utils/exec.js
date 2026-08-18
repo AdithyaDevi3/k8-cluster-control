@@ -45,4 +45,57 @@ function spawnCommand(command, args = [], options = {}) {
   });
 }
 
-module.exports = { execCommand, spawnCommand };
+/**
+ * Executes a command with arguments safely.
+ * Returns separate stdout and stderr for better error handling.
+ * @param {string} command - Command to execute
+ * @param {Array<string>} args - Command arguments
+ * @param {Object} options - Execution options
+ * @returns {Promise<Object>} Result with success, stdout, stderr, and exitCode
+ */
+function executeCommand(command, args = [], options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      timeout: options.timeout || 20000,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    
+    child.on('error', (error) => {
+      resolve({
+        success: false,
+        stdout: stdout.trim(),
+        stderr: error.message,
+        exitCode: null
+      });
+    });
+    
+    child.on('close', (exitCode) => {
+      resolve({
+        success: exitCode === 0,
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode
+      });
+    });
+
+    if (options.stdin && child.stdin) {
+      child.stdin.write(options.stdin);
+    }
+    if (child.stdin) {
+      child.stdin.end();
+    }
+  });
+}
+
+module.exports = { execCommand, spawnCommand, executeCommand };

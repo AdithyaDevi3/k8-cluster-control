@@ -119,18 +119,28 @@ async function bootstrap() {
       selectedCluster = newCluster;
       updateTargetContext();
       galaxy.selectCluster(newCluster.id);
-      ui.renderClusterDetails(newCluster);
-      const objects = await ui.fetchClusterObjects(newCluster.id);
-      galaxy.renderClusterObjects(newCluster.id, objects);
+      await renderClusterInfo(newCluster);
       await refreshHistory();
     });
 
     galaxy.renderClusters(clusters);
     if (selectedCluster) {
-      ui.renderClusterDetails(selectedCluster);
-      const objects = await ui.fetchClusterObjects(selectedCluster.id);
-      galaxy.renderClusterObjects(selectedCluster.id, objects);
+      await renderClusterInfo(selectedCluster);
       await refreshHistory();
+    }
+  }
+
+  async function renderClusterInfo(cluster) {
+    try {
+      const [objects, nodes] = await Promise.all([
+        ui.fetchClusterObjects(cluster.id),
+        ui.fetchNodes(cluster.id).catch(() => [])
+      ]);
+      galaxy.renderClusterObjects(cluster.id, objects);
+      ui.renderNodeHealth(cluster, nodes);
+    } catch (error) {
+      console.error('Failed to render cluster info:', error);
+      ui.renderClusterDetails(cluster);
     }
   }
 
@@ -140,26 +150,37 @@ async function bootstrap() {
     ui.renderClusterList(clusters, cluster.id, async (newCluster) => {
       selectedCluster = newCluster;
       galaxy.selectCluster(newCluster.id);
-      ui.renderClusterDetails(newCluster);
-      const objects = await ui.fetchClusterObjects(newCluster.id);
-      galaxy.renderClusterObjects(newCluster.id, objects);
+      await renderClusterInfo(newCluster);
     });
-    const objects = await ui.fetchClusterObjects(cluster.id);
-    galaxy.renderClusterObjects(cluster.id, objects);
-    ui.renderClusterDetails(cluster);
+    await renderClusterInfo(cluster);
     await refreshHistory();
   });
 
   galaxy.onObjectAction(async (cluster, object) => {
-    ui.renderSelectionDetails(cluster, object, {
-      onUseCommand: loadObjectCommand
-    });
+    await renderObjectDetails(cluster, object);
   });
 
   function onObjectSelected(cluster, object) {
-    ui.renderSelectionDetails(cluster, object, {
-      onUseCommand: loadObjectCommand
-    });
+    renderObjectDetails(cluster, object);
+  }
+
+  async function renderObjectDetails(cluster, object) {
+    // If it's a pod, fetch detailed information
+    if (object.kind === 'Pod' && object.namespace) {
+      try {
+        const podDetails = await ui.fetchPodDetails(cluster.id, object.namespace, object.metadata.name);
+        ui.renderPodDetails(cluster, podDetails);
+      } catch (error) {
+        console.error('Failed to fetch pod details:', error);
+        ui.renderSelectionDetails(cluster, object, {
+          onUseCommand: loadObjectCommand
+        });
+      }
+    } else {
+      ui.renderSelectionDetails(cluster, object, {
+        onUseCommand: loadObjectCommand
+      });
+    }
   }
 
   function loadObjectCommand(command, object, cluster) {

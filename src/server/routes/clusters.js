@@ -1,13 +1,19 @@
 const express = require('express');
-const { getClusters, getClusterById, getClusterObjects } = require('../services/clusterService');
+const { getClusters, getClusterById, getClusterObjects, refreshClusters } = require('../services/clusterService');
 const { runKubectlCommand, applyManifest } = require('../services/kubectlService');
 const { interpretCommand } = require('../services/commandInterpreter');
 const { recordEvent, getEvents } = require('../services/auditService');
+const { getNodes, getPodDetails, getNamespaces } = require('../services/resourceService');
 const router = express.Router();
 
 router.get('/', (req, res) => {
   const clusters = getClusters();
   res.json(clusters);
+});
+
+router.post('/refresh', (req, res) => {
+  const clusters = refreshClusters();
+  res.json({ message: 'Clusters refreshed', count: clusters.length, clusters });
 });
 
 router.post('/:clusterId/connect', (req, res) => {
@@ -19,13 +25,18 @@ router.post('/:clusterId/connect', (req, res) => {
   res.json({ connected: true, cluster });
 });
 
-router.get('/:clusterId/objects', (req, res) => {
+router.get('/:clusterId/objects', async (req, res) => {
   const cluster = getClusterById(req.params.clusterId);
   if (!cluster) {
     return res.status(404).json({ error: 'Cluster not found' });
   }
 
-  res.json(getClusterObjects(cluster.id));
+  try {
+    const objects = await getClusterObjects(cluster.id, cluster.kubeContext);
+    res.json(objects);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cluster objects', message: error.message });
+  }
 });
 
 router.get('/:clusterId/history', (req, res) => {
@@ -98,6 +109,56 @@ router.post('/:clusterId/apply', async (req, res) => {
     outcome: result.confirmationRequired ? 'confirmation-required' : result.success ? 'completed' : 'failed'
   });
   res.status(result.confirmationRequired ? 409 : 200).json(result);
+});
+
+// Get all nodes for a cluster with health status
+router.get('/:clusterId/nodes', async (req, res) => {
+  const cluster = getClusterById(req.params.clusterId);
+  if (!cluster) {
+    return res.status(404).json({ error: 'Cluster not found' });
+  }
+
+  try {
+    const nodes = await getNodes(cluster.kubeContext);
+    res.json(nodes);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch nodes', message: error.message });
+  }
+});
+
+// Get all namespaces for a cluster
+router.get('/:clusterId/namespaces', async (req, res) => {
+  const cluster = getClusterById(req.params.clusterId);
+  if (!cluster) {
+    return res.status(404).json({ error: 'Cluster not found' });
+  }
+
+  try {
+    const namespaces = await getNamespaces(cluster.kubeContext);
+    res.json(namespaces);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch namespaces', message: error.message });
+  }
+});
+
+// Get detailed information for a specific pod
+router.get('/:clusterId/namespaces/:namespace/pods/:podName', async (req, res) => {
+  const cluster = getClusterById(req.params.clusterId);
+  if (!cluster) {
+    return res.status(404).json({ error: 'Cluster not found' });
+  }
+
+  const { namespace, podName } = req.params;
+  
+  try {
+    const podDetails = await getPodDetails(cluster.kubeContext, namespace, podName);
+    res.json(podDetails);
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to fetch pod details', 
+      message: error.message 
+    });
+  }
 });
 
 module.exports = router;

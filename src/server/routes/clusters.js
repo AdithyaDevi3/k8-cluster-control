@@ -1,5 +1,5 @@
 const express = require('express');
-const { getClusters, getClusterById, getClusterObjects } = require('../services/clusterService');
+const { getClusters, getClusterById, getClusterObjects, refreshClusters } = require('../services/clusterService');
 const { runKubectlCommand, applyManifest } = require('../services/kubectlService');
 const { interpretCommand } = require('../services/commandInterpreter');
 const { recordEvent, getEvents } = require('../services/auditService');
@@ -8,6 +8,11 @@ const router = express.Router();
 router.get('/', (req, res) => {
   const clusters = getClusters();
   res.json(clusters);
+});
+
+router.post('/refresh', (req, res) => {
+  const clusters = refreshClusters();
+  res.json({ message: 'Clusters refreshed', count: clusters.length, clusters });
 });
 
 router.post('/:clusterId/connect', (req, res) => {

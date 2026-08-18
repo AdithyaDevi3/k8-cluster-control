@@ -5,6 +5,7 @@
 k8-cluster-control provides real-time 3D visualization and management of Kubernetes clusters with an intuitive galaxy-style interface.
 
 ## Feature Status Legend
+
 - ✅ **Complete**: Implemented, tested, merged
 - 🚧 **In Progress**: Partially implemented, active development
 - 📋 **Planned**: Designed, scheduled for implementation
@@ -15,12 +16,14 @@ k8-cluster-control provides real-time 3D visualization and management of Kuberne
 ## Short-Term Features (✅ Complete)
 
 ### 1. Live Cluster Discovery ✅
+
 **Status**: Complete (feat/short-term-roadmap-complete)  
 **Commit**: 6b55afb
 
 **Description**: Automatically discover and connect to multiple Kubernetes clusters from kubeconfig contexts.
 
 **Capabilities**:
+
 - Parse ~/.kube/config for all contexts
 - Support multiple clusters simultaneously
 - Switch between clusters via dropdown
@@ -28,6 +31,7 @@ k8-cluster-control provides real-time 3D visualization and management of Kuberne
 - Cache cluster data with 30-second TTL
 
 **API Endpoints**:
+
 ```
 GET /api/clusters
 → Returns array of available clusters from kubeconfig
@@ -37,21 +41,24 @@ GET /api/clusters/:context/resources
 ```
 
 **Usage**:
+
 ```javascript
 // Frontend usage
-const clusters = await fetch('/api/clusters').then(r => r.json());
+const clusters = await fetch("/api/clusters").then((r) => r.json());
 console.log(clusters); // [{id: 'kind-dev', name: 'kind-dev', server: '...'}]
 ```
 
 ---
 
 ### 2. Kind Cluster Bootstrap ✅
+
 **Status**: Complete (feat/short-term-roadmap-complete)  
 **Commit**: 82f6974
 
 **Description**: Create, delete, and manage local Kind (Kubernetes in Docker) clusters.
 
 **Capabilities**:
+
 - Create Kind cluster with custom name
 - Delete existing Kind cluster
 - List all Kind clusters
@@ -59,6 +66,7 @@ console.log(clusters); // [{id: 'kind-dev', name: 'kind-dev', server: '...'}]
 - Automatic kubeconfig integration
 
 **API Endpoints**:
+
 ```
 POST /api/kind/create
 → Body: {name: 'dev-cluster', config: {...}}
@@ -72,20 +80,23 @@ GET /api/kind/list
 ```
 
 **CLI Integration**:
+
 ```javascript
 // Uses child_process.spawn for kind CLI
-spawn('kind', ['create', 'cluster', '--name', clusterName])
+spawn("kind", ["create", "cluster", "--name", clusterName]);
 ```
 
 ---
 
 ### 3. Node Health Monitoring ✅
+
 **Status**: Complete (feat/short-term-roadmap-complete)  
 **Commit**: 6ae2635
 
 **Description**: Real-time node resource metrics and health status tracking.
 
 **Capabilities**:
+
 - CPU usage per node
 - Memory usage per node
 - Node conditions (Ready, DiskPressure, MemoryPressure)
@@ -93,6 +104,7 @@ spawn('kind', ['create', 'cluster', '--name', clusterName])
 - Resource allocation tracking
 
 **API Endpoints**:
+
 ```
 GET /api/clusters/:context/nodes/:name
 → Returns detailed node metrics and status
@@ -102,6 +114,7 @@ GET /api/clusters/:context/pods/:namespace/:name
 ```
 
 **Metrics Collected**:
+
 ```javascript
 {
   cpu: { used: '250m', total: '4000m', percentage: 6.25 },
@@ -116,12 +129,14 @@ GET /api/clusters/:context/pods/:namespace/:name
 ---
 
 ### 4. Pod Detail Panels ✅
+
 **Status**: Complete (feat/short-term-roadmap-complete)  
 **Commit**: 6f624e3
 
 **Description**: Interactive detail panels for pods and nodes with comprehensive resource information.
 
 **Capabilities**:
+
 - Click pod/node in 3D view to open detail panel
 - Display metadata (name, namespace, labels, annotations)
 - Show status (phase, IP, QoS, restarts)
@@ -130,10 +145,12 @@ GET /api/clusters/:context/pods/:namespace/:name
 - Smooth slide-up animation
 
 **Panel Contents**:
+
 - **Pod Panel**: Name, namespace, status, IP, QoS, node, containers, labels, actions
 - **Node Panel**: Name, version, status, capacity, conditions, labels, actions
 
 **UI Components**:
+
 ```javascript
 renderPodDetails(cluster, pod) {
   // Creates detail panel with:
@@ -148,12 +165,14 @@ renderPodDetails(cluster, pod) {
 ---
 
 ### 5. GPU-Accelerated Instanced Rendering ✅
+
 **Status**: Complete (feat/short-term-roadmap-complete)  
 **Commit**: 6dae7b1
 
 **Description**: High-performance 3D rendering using GPU instancing for thousands of Kubernetes resources.
 
 **Capabilities**:
+
 - Render 1000+ pods at 60fps
 - Single draw call per resource type
 - GPU-side matrix transformations
@@ -161,6 +180,7 @@ renderPodDetails(cluster, pod) {
 - Efficient selection/hover detection
 
 **Technical Implementation**:
+
 ```javascript
 // Uses THREE.InstancedMesh
 const geometry = new THREE.SphereGeometry(0.5, 16, 16);
@@ -174,12 +194,14 @@ instancedMesh.instanceMatrix.needsUpdate = true;
 ```
 
 **Performance**:
+
 - **Before**: 200 pods = 30fps (individual meshes)
 - **After**: 1000+ pods = 60fps (instanced meshes)
 
 ---
 
 ### 6. Intelligent Layout Algorithms ✅
+
 **Status**: Complete (feat/short-term-roadmap-complete)  
 **Commit**: 57afad3
 
@@ -188,31 +210,36 @@ instancedMesh.instanceMatrix.needsUpdate = true;
 **Algorithms**:
 
 **1. Namespace Grouping (Default)**:
+
 - Pods grouped by namespace
 - Poisson disc sampling within each group
 - Color-coded by namespace
 - Prevents overlap
 
 **2. Radial Layout**:
+
 - Concentric rings
 - Namespaces on inner rings
 - Pods on outer rings
 - 360° distribution
 
 **3. Flat Poisson Disc**:
+
 - Uniform distribution
 - No namespace grouping
 - Maximum space efficiency
 - Blue darts algorithm
 
 **API**:
+
 ```javascript
-layoutService.namespaceGroupLayout(pods, nodes)
-layoutService.radialLayout(pods, nodes)
-layoutService.poissonDiscLayout(pods, nodes)
+layoutService.namespaceGroupLayout(pods, nodes);
+layoutService.radialLayout(pods, nodes);
+layoutService.poissonDiscLayout(pods, nodes);
 ```
 
 **Configuration**:
+
 ```javascript
 // UI dropdown to switch layouts
 <select id="layout-selector">
@@ -227,12 +254,14 @@ layoutService.poissonDiscLayout(pods, nodes)
 ## Mid-Term Features (🚧 In Progress)
 
 ### 7. Terminal Access & Live Logs 🚧
+
 **Status**: Complete (feat/mid-term-roadmap, pushed to remote)  
 **Commits**: 465049d, 1fd446a, d56c714, b03d86e
 
 **Description**: Real-time pod log streaming with Server-Sent Events and container command execution.
 
 **Capabilities**:
+
 - Stream pod logs in real-time
 - Select specific container (multi-container pods)
 - Follow mode (auto-scroll)
@@ -242,6 +271,7 @@ layoutService.poissonDiscLayout(pods, nodes)
 - Auto-reconnect on disconnect
 
 **API Endpoints**:
+
 ```
 GET /api/logs/:context/:namespace/:pod/stream
 → SSE endpoint, streams logs in real-time
@@ -256,6 +286,7 @@ POST /api/logs/:context/:namespace/:pod/exec
 ```
 
 **SSE Events**:
+
 ```javascript
 eventSource.addEventListener('connected', () => {...});
 eventSource.addEventListener('log', (e) => {
@@ -267,6 +298,7 @@ eventSource.addEventListener('end', () => {...});
 ```
 
 **UI Features**:
+
 - Bottom panel (50vh height)
 - Container selector dropdown
 - Follow checkbox (auto-scroll)
@@ -278,12 +310,14 @@ eventSource.addEventListener('end', () => {...});
 ---
 
 ### 8. Manifest Editor with Diff Preview 🚧
+
 **Status**: Complete (feat/mid-term-roadmap, LOCAL ONLY - not pushed)  
 **Commits**: 4d29256, 037af0a, 41436da, 0c8105c, f006ae6
 
 **Description**: In-browser YAML manifest editor with validation, diff preview, and live apply capabilities.
 
 **Capabilities**:
+
 - Load current resource manifest via kubectl
 - Edit YAML in textarea (Monaco editor future upgrade)
 - Validate YAML syntax and Kubernetes schema
@@ -292,6 +326,7 @@ eventSource.addEventListener('end', () => {...});
 - Error handling with user-friendly messages
 
 **API Endpoints**:
+
 ```
 GET /api/manifests/:context/:kind/:namespace/:name
 → Returns current resource manifest as YAML
@@ -310,6 +345,7 @@ POST /api/manifests/apply
 ```
 
 **UI Features**:
+
 - Full-screen modal overlay
 - Split-pane layout (editor left, diff right)
 - Syntax highlighting (future: Monaco editor integration)
@@ -320,6 +356,7 @@ POST /api/manifests/apply
 - Diff styling: green additions, red deletions, cyan headers
 
 **Workflow**:
+
 ```
 User clicks "Edit Manifest"
   ↓
@@ -341,9 +378,11 @@ Success message → Modal closes
 ---
 
 ### 9. Filters and Search 📋
+
 **Status**: Planned (next feature in mid-term roadmap)
 
 **Proposed Capabilities**:
+
 - Filter by namespace
 - Filter by label selector
 - Filter by resource type (pod, service, deployment)
@@ -354,6 +393,7 @@ Success message → Modal closes
 - Filter persistence (localStorage)
 
 **UI Design**:
+
 ```
 ┌────────────────────────────────────────┐
 │  Filters                           [X] │
@@ -368,6 +408,7 @@ Success message → Modal closes
 ```
 
 **API Endpoint**:
+
 ```
 GET /api/clusters/:context/resources?filters={...}
 → Query params: namespace, labels, status, search
@@ -376,11 +417,13 @@ GET /api/clusters/:context/resources?filters={...}
 ---
 
 ### 10. Cluster Operations 📋
+
 **Status**: Planned
 
 **Proposed Capabilities**:
 
 **Node Operations**:
+
 - Drain node (evict all pods)
 - Cordon node (mark unschedulable)
 - Uncordon node (mark schedulable)
@@ -389,6 +432,7 @@ GET /api/clusters/:context/resources?filters={...}
 - Taint/untaint nodes
 
 **Pod Operations**:
+
 - Delete pod
 - Restart pod (delete + wait for recreate)
 - Scale deployment (change replica count)
@@ -396,16 +440,19 @@ GET /api/clusters/:context/resources?filters={...}
 - Copy files to/from pod
 
 **Service Operations**:
+
 - Expose deployment as service
 - Edit service (change type, ports)
 - Delete service
 
 **Namespace Operations**:
+
 - Create namespace
 - Delete namespace (with confirmation)
 - Label namespace
 
 **UI**: Right-click context menu on resources:
+
 ```
 ┌─────────────────────┐
 │  Pod: nginx-abc123  │
@@ -423,9 +470,11 @@ GET /api/clusters/:context/resources?filters={...}
 ---
 
 ### 11. Network Topology Visualization 📋
+
 **Status**: Planned
 
 **Proposed Capabilities**:
+
 - Visualize services and their endpoints
 - Show ingress routes
 - Display network policies
@@ -435,6 +484,7 @@ GET /api/clusters/:context/resources?filters={...}
 - External traffic flows
 
 **Visualization Modes**:
+
 1. **Service Graph**: Services as nodes, pod endpoints as connections
 2. **Traffic Flow**: Animated particles showing request paths
 3. **Network Policy**: Color-coded allowed/denied connections
@@ -446,6 +496,7 @@ GET /api/clusters/:context/resources?filters={...}
 ## Long-Term Features (💡 Proposed)
 
 ### 12. Helm Release Management 💡
+
 - List Helm releases
 - Install new charts
 - Upgrade existing releases
@@ -454,6 +505,7 @@ GET /api/clusters/:context/resources?filters={...}
 - Chart repository browser
 
 ### 13. GitOps Integration 💡
+
 - Connect to Git repository
 - Sync resources from Git
 - Show drift detection
@@ -461,18 +513,21 @@ GET /api/clusters/:context/resources?filters={...}
 - Integration with ArgoCD, Flux
 
 ### 14. Custom Resource Definitions (CRDs) 💡
+
 - Detect installed CRDs
 - Visualize custom resources
 - Edit CRD manifests
 - Support popular operators (Prometheus, Cert-Manager, etc.)
 
 ### 15. Multi-Cluster Dashboard 💡
+
 - Aggregate view across clusters
 - Cross-cluster search
 - Cluster comparison metrics
 - Federated resource management
 
 ### 16. Alerts and Notifications 💡
+
 - Real-time alert overlays in 3D
 - OOMKilled pod highlights
 - CrashLoopBackOff warnings
@@ -480,24 +535,28 @@ GET /api/clusters/:context/resources?filters={...}
 - Integration with Prometheus AlertManager
 
 ### 17. Resource Templates 💡
+
 - Save common manifest templates
 - Template library (nginx, redis, postgres)
 - Variable substitution
 - Quick deploy from template
 
 ### 18. Time Travel / History 💡
+
 - Replay cluster state changes
 - Scrub timeline to view past states
 - Audit log visualization
 - Diff between time points
 
 ### 19. Collaborative Features 💡
+
 - Multi-user support
 - Shared sessions (view same cluster together)
 - In-app chat or annotations
 - Permissions and RBAC roles
 
 ### 20. Performance Profiling 💡
+
 - CPU flamegraphs for containers
 - Memory heap dumps
 - Network latency heatmaps
@@ -507,21 +566,21 @@ GET /api/clusters/:context/resources?filters={...}
 
 ## Feature Comparison Matrix
 
-| Feature | CLI (kubectl) | Dashboard (k8s) | k8-cluster-control |
-|---------|---------------|-----------------|---------------------|
-| List resources | ✅ | ✅ | ✅ |
-| 3D Visualization | ❌ | ❌ | ✅ |
-| Live log streaming | ✅ | ✅ | ✅ |
-| Manifest editing | ✅ | ✅ | ✅ |
-| Diff preview | ✅ | ❌ | ✅ |
-| GPU acceleration | ❌ | ❌ | ✅ |
-| Multi-cluster | ✅ | ⚠️ | ✅ |
-| Namespace grouping | ❌ | ⚠️ | ✅ |
-| Kind integration | ✅ | ❌ | ✅ |
-| Node operations | ✅ | ✅ | 📋 |
-| Network topology | ❌ | ⚠️ | 📋 |
-| Helm support | ✅ (helm CLI) | ❌ | 💡 |
-| GitOps | ❌ | ❌ | 💡 |
+| Feature            | CLI (kubectl) | Dashboard (k8s) | k8-cluster-control |
+| ------------------ | ------------- | --------------- | ------------------ |
+| List resources     | ✅            | ✅              | ✅                 |
+| 3D Visualization   | ❌            | ❌              | ✅                 |
+| Live log streaming | ✅            | ✅              | ✅                 |
+| Manifest editing   | ✅            | ✅              | ✅                 |
+| Diff preview       | ✅            | ❌              | ✅                 |
+| GPU acceleration   | ❌            | ❌              | ✅                 |
+| Multi-cluster      | ✅            | ⚠️              | ✅                 |
+| Namespace grouping | ❌            | ⚠️              | ✅                 |
+| Kind integration   | ✅            | ❌              | ✅                 |
+| Node operations    | ✅            | ✅              | 📋                 |
+| Network topology   | ❌            | ⚠️              | 📋                 |
+| Helm support       | ✅ (helm CLI) | ❌              | 💡                 |
+| GitOps             | ❌            | ❌              | 💡                 |
 
 ---
 
@@ -532,7 +591,7 @@ For gradual rollout and A/B testing:
 ```javascript
 // Feature flag configuration
 const features = {
-  manifestEditor: true,  // Enabled
+  manifestEditor: true, // Enabled
   networkTopology: false, // Disabled (in development)
   helmIntegration: false, // Disabled (not started)
 };
@@ -544,6 +603,7 @@ if (features.manifestEditor) {
 ```
 
 **Implementation**: Environment variables or config file
+
 ```
 FEATURE_MANIFEST_EDITOR=true
 FEATURE_NETWORK_TOPOLOGY=false
@@ -554,12 +614,14 @@ FEATURE_NETWORK_TOPOLOGY=false
 ## Accessibility Features
 
 ### Current
+
 - Keyboard navigation (Tab, Enter, Esc)
 - ARIA labels on buttons
 - Focus indicators
 - High contrast text
 
 ### Planned
+
 - Screen reader support
 - Keyboard shortcuts (Ctrl+L for logs, Ctrl+E for edit)
 - Voice navigation
@@ -570,9 +632,11 @@ FEATURE_NETWORK_TOPOLOGY=false
 ## Internationalization (i18n)
 
 ### Current
+
 - English only
 
 ### Planned
+
 - Spanish, French, German, Chinese, Japanese
 - Date/time localization
 - Number formatting (metric vs imperial)
@@ -582,11 +646,13 @@ FEATURE_NETWORK_TOPOLOGY=false
 ## Mobile Support
 
 ### Current
+
 - Touch controls for 3D camera
 - Responsive design (partial)
 - Small screen detail panels
 
 ### Planned
+
 - Mobile-optimized UI
 - Swipe gestures
 - Offline mode
@@ -596,14 +662,14 @@ FEATURE_NETWORK_TOPOLOGY=false
 
 ## Performance Targets
 
-| Metric | Current | Target |
-|--------|---------|--------|
-| Initial Load | <2s | <1s |
-| 3D Render (1000 pods) | 60fps | 60fps |
-| Log Streaming Latency | <100ms | <50ms |
-| API Response Time | <200ms | <100ms |
-| Memory Usage | <150MB | <100MB |
-| Bundle Size | ~500KB | <300KB |
+| Metric                | Current | Target |
+| --------------------- | ------- | ------ |
+| Initial Load          | <2s     | <1s    |
+| 3D Render (1000 pods) | 60fps   | 60fps  |
+| Log Streaming Latency | <100ms  | <50ms  |
+| API Response Time     | <200ms  | <100ms |
+| Memory Usage          | <150MB  | <100MB |
+| Bundle Size           | ~500KB  | <300KB |
 
 ---
 

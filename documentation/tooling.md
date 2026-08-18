@@ -3,6 +3,7 @@
 ## Development Environment Setup
 
 ### Prerequisites
+
 ```bash
 # Required
 node -v          # v18+ (LTS)
@@ -17,6 +18,7 @@ code --version   # VS Code (recommended IDE)
 ```
 
 ### Initial Setup
+
 ```bash
 # Clone repository
 git clone https://github.com/AdithyaDevi3/k8-cluster-control.git
@@ -38,6 +40,7 @@ open http://localhost:3000
 ## Git Workflow
 
 ### Branch Strategy
+
 ```
 main (protected)
   ↓
@@ -49,6 +52,7 @@ feat/long-term-roadmap (future)
 ```
 
 ### Branch Naming Convention
+
 - **Feature branches**: `feat/<feature-name>`
   - Example: `feat/terminal-access-logs`
 - **Bug fixes**: `fix/<issue-description>`
@@ -65,6 +69,7 @@ feat/long-term-roadmap (future)
 **Golden Rule**: Maximum 2 files per commit (exception: documentation bundles)
 
 **Format**:
+
 ```
 <type>(<scope>): <subject>
 
@@ -74,6 +79,7 @@ feat/long-term-roadmap (future)
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -84,6 +90,7 @@ feat/long-term-roadmap (future)
 - `chore`: Maintenance tasks
 
 **Examples**:
+
 ```bash
 # Good commits (≤2 files)
 git commit -m "feat(logs): add backend service for pod log streaming
@@ -107,12 +114,14 @@ git commit -m "feat: add entire logs feature"  # 4+ files - TOO BIG
 ### Pull Request Process
 
 **Before Creating PR**:
+
 1. Ensure all commits follow standards (≤2 files each)
 2. Test feature manually in browser
 3. Check git status is clean
 4. Push branch to remote: `git push origin <branch-name>`
 
 **Creating PR**:
+
 ```bash
 # Via GitHub CLI
 gh pr create --title "feat: Terminal access and live logs" \
@@ -124,24 +133,30 @@ gh pr create --title "feat: Terminal access and live logs" \
 ```
 
 **PR Template**:
+
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Features Added
+
 - Feature 1 (commits: abc123, def456)
 - Feature 2 (commits: ghi789)
 
 ## Testing
+
 - [ ] Manual testing completed
 - [ ] Smoke tests pass
 - [ ] No console errors
 - [ ] Works with Kind cluster
 
 ## Screenshots (if UI changes)
+
 [Attach screenshots]
 
 ## Checklist
+
 - [ ] Commits follow ≤2 files standard
 - [ ] Code follows project conventions
 - [ ] Documentation updated (if needed)
@@ -149,6 +164,7 @@ Brief description of changes
 ```
 
 **PR Review Checklist**:
+
 - ✅ Each commit atomic and focused
 - ✅ Commit messages descriptive
 - ✅ No commented-out code
@@ -160,6 +176,7 @@ Brief description of changes
 ### Rebasing Strategy
 
 **Rebasing onto base branch**:
+
 ```bash
 # Update local base branch
 git checkout feat/short-term-roadmap-complete
@@ -180,6 +197,7 @@ git push --force-with-lease origin feat/mid-term-roadmap
 ```
 
 **Squashing commits** (if needed):
+
 ```bash
 # Interactive rebase last 5 commits
 git rebase -i HEAD~5
@@ -198,6 +216,7 @@ pick jkl012 feat(logs): SSE endpoint
 ### VS Code Settings
 
 **Recommended Extensions**:
+
 - ESLint (future when linting added)
 - Prettier (future for formatting)
 - GitLens (git history visualization)
@@ -205,6 +224,7 @@ pick jkl012 feat(logs): SSE endpoint
 - Kubernetes (YAML editing, kubectl integration)
 
 **Workspace Settings** (`.vscode/settings.json`):
+
 ```json
 {
   "editor.tabSize": 2,
@@ -222,6 +242,7 @@ pick jkl012 feat(logs): SSE endpoint
 ### Code Style Guide
 
 **JavaScript**:
+
 - Use `const` by default, `let` when reassignment needed
 - Avoid `var`
 - Use async/await over raw promises
@@ -230,6 +251,7 @@ pick jkl012 feat(logs): SSE endpoint
 - Use destructuring for object/array access
 
 **Example**:
+
 ```javascript
 // Good
 const { namespace, podName } = req.params;
@@ -237,12 +259,13 @@ const logs = await logsService.streamPodLogs(context, namespace, podName);
 
 // Bad
 var namespace = req.params.namespace;
-logsService.streamPodLogs(context, namespace, podName).then(function(logs) {
+logsService.streamPodLogs(context, namespace, podName).then(function (logs) {
   // ...
 });
 ```
 
 **File Naming**:
+
 - Services: camelCase - `logsService.js`
 - Routes: plural - `logs.js`, `manifests.js`
 - Components: camelCase - `renderer.js`, `ui.js`
@@ -253,6 +276,7 @@ logsService.streamPodLogs(context, namespace, podName).then(function(logs) {
 ### Current Approach (Manual Testing)
 
 **Server Startup Testing**:
+
 ```bash
 # Terminal 1: Start server
 npm start
@@ -265,6 +289,7 @@ curl http://localhost:3000/api/tools/status
 ```
 
 **Browser Testing Workflow**:
+
 1. Open http://localhost:3000 in Chrome
 2. Open DevTools (F12) → Console tab
 3. Check for JavaScript errors
@@ -277,6 +302,7 @@ curl http://localhost:3000/api/tools/status
    - Click "Apply" → verify success message
 
 **Regression Testing Checklist**:
+
 - [ ] Cluster list loads without errors
 - [ ] 3D visualization renders (see colorful spheres)
 - [ ] Camera controls work (drag to rotate, scroll to zoom)
@@ -291,6 +317,7 @@ curl http://localhost:3000/api/tools/status
 ### Future Automated Testing
 
 **Unit Tests** (Jest):
+
 ```bash
 # Setup
 npm install --save-dev jest supertest
@@ -303,36 +330,43 @@ npm test -- --watch
 ```
 
 **Example Test**:
+
 ```javascript
 // tests/logsService.test.js
-describe('logsService', () => {
-  it('should stream pod logs', async () => {
-    const stream = await logsService.streamPodLogs('kind-dev', 'default', 'nginx-pod');
+describe("logsService", () => {
+  it("should stream pod logs", async () => {
+    const stream = await logsService.streamPodLogs(
+      "kind-dev",
+      "default",
+      "nginx-pod",
+    );
     expect(stream).toBeInstanceOf(Stream);
   });
 });
 ```
 
 **E2E Tests** (Playwright):
+
 ```javascript
 // tests/e2e/logs.spec.js
-test('should view pod logs', async ({ page }) => {
-  await page.goto('http://localhost:3000');
-  await page.click('text=Select Cluster');
-  await page.click('canvas'); // Click 3D canvas
-  await page.click('text=View Logs');
-  await expect(page.locator('.logs-panel')).toBeVisible();
+test("should view pod logs", async ({ page }) => {
+  await page.goto("http://localhost:3000");
+  await page.click("text=Select Cluster");
+  await page.click("canvas"); // Click 3D canvas
+  await page.click("text=View Logs");
+  await expect(page.locator(".logs-panel")).toBeVisible();
 });
 ```
 
 **API Tests** (Supertest):
-```javascript
-const request = require('supertest');
-const app = require('../src/server/app');
 
-describe('GET /api/clusters', () => {
-  it('should return cluster list', async () => {
-    const response = await request(app).get('/api/clusters');
+```javascript
+const request = require("supertest");
+const app = require("../src/server/app");
+
+describe("GET /api/clusters", () => {
+  it("should return cluster list", async () => {
+    const response = await request(app).get("/api/clusters");
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
   });
@@ -344,6 +378,7 @@ describe('GET /api/clusters', () => {
 ### Server-Side Debugging
 
 **Node.js Inspector**:
+
 ```bash
 # Start with debugger
 node --inspect src/server/index.js
@@ -353,6 +388,7 @@ node --inspect src/server/index.js
 ```
 
 **VS Code Launch Config** (`.vscode/launch.json`):
+
 ```json
 {
   "version": "0.2.0",
@@ -370,12 +406,13 @@ node --inspect src/server/index.js
 ```
 
 **Logging Best Practices**:
+
 ```javascript
-const logger = require('./utils/logger');
+const logger = require("./utils/logger");
 
 // Use logger utility
-logger.info('Streaming logs', { context, namespace, pod });
-logger.error('Stream error', error);
+logger.info("Streaming logs", { context, namespace, pod });
+logger.error("Stream error", error);
 
 // Avoid console.log in production code
 // console.log('debug message'); // ❌ Remove before commit
@@ -384,6 +421,7 @@ logger.error('Stream error', error);
 ### Client-Side Debugging
 
 **Chrome DevTools**:
+
 - **Console**: Check for JS errors, network errors
 - **Network**: Monitor API requests, SSE streams
 - **Sources**: Set breakpoints in JS files
@@ -391,33 +429,35 @@ logger.error('Stream error', error);
 - **Memory**: Check for memory leaks during rendering
 
 **Three.js Debugging**:
+
 ```javascript
 // Enable stats panel
-import Stats from 'three/addons/libs/stats.module.js';
+import Stats from "three/addons/libs/stats.module.js";
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
 // Log scene graph
 console.log(scene);
-console.log('Children:', scene.children.length);
+console.log("Children:", scene.children.length);
 
 // Check instance count
-console.log('Instance count:', instancedMesh.count);
+console.log("Instance count:", instancedMesh.count);
 ```
 
 **SSE Debugging**:
+
 ```javascript
 // Monitor SSE connection
-eventSource.addEventListener('open', () => {
-  console.log('SSE connected');
+eventSource.addEventListener("open", () => {
+  console.log("SSE connected");
 });
 
-eventSource.addEventListener('error', (e) => {
-  console.error('SSE error', e);
+eventSource.addEventListener("error", (e) => {
+  console.error("SSE error", e);
 });
 
 // Check EventSource state
-console.log('ReadyState:', eventSource.readyState);
+console.log("ReadyState:", eventSource.readyState);
 // 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
 ```
 
@@ -426,6 +466,7 @@ console.log('ReadyState:', eventSource.readyState);
 ### Backend Profiling
 
 **Node.js built-in profiler**:
+
 ```bash
 node --prof src/server/index.js
 # ... use app ...
@@ -435,6 +476,7 @@ node --prof-process isolate-*.log > profile.txt
 ```
 
 **Memory profiling**:
+
 ```bash
 node --inspect --expose-gc src/server/index.js
 # Chrome DevTools → Memory tab → Take Heap Snapshot
@@ -443,6 +485,7 @@ node --inspect --expose-gc src/server/index.js
 ### Frontend Profiling
 
 **Chrome Performance Tab**:
+
 1. Open DevTools → Performance
 2. Click Record
 3. Interact with 3D visualization
@@ -450,11 +493,12 @@ node --inspect --expose-gc src/server/index.js
 5. Analyze frame rate, layout thrashing, JavaScript execution time
 
 **Three.js Stats**:
+
 ```javascript
 // Show FPS counter
 stats.begin(); // Start frame
 renderer.render(scene, camera);
-stats.end();   // End frame
+stats.end(); // End frame
 ```
 
 ## Deployment Tools
@@ -462,11 +506,13 @@ stats.end();   // End frame
 ### Docker
 
 **Build image**:
+
 ```bash
 docker build -t k8-cluster-control:latest .
 ```
 
 **Run container**:
+
 ```bash
 docker run -p 3000:3000 \
   -v ~/.kube/config:/root/.kube/config:ro \
@@ -474,6 +520,7 @@ docker run -p 3000:3000 \
 ```
 
 **Docker Compose** (development):
+
 ```bash
 docker-compose up --build
 ```
@@ -481,17 +528,20 @@ docker-compose up --build
 ### Kubernetes Deployment
 
 **Apply manifests**:
+
 ```bash
 kubectl apply -f k8s/base.yaml
 kubectl apply -f k8s/rbac-readonly.yaml  # Or rbac-operator.yaml
 ```
 
 **Port forward**:
+
 ```bash
 kubectl port-forward svc/k8-cluster-control 3000:3000
 ```
 
 **Check logs**:
+
 ```bash
 kubectl logs -f deployment/k8-cluster-control
 ```
@@ -499,6 +549,7 @@ kubectl logs -f deployment/k8-cluster-control
 ## CI/CD (Planned)
 
 ### GitHub Actions Workflow
+
 ```yaml
 # .github/workflows/test.yml
 name: Test
@@ -519,17 +570,21 @@ jobs:
 ## Monitoring Tools (Future)
 
 ### Logging
+
 - **Winston**: Structured JSON logs
 - **Pino**: High-performance logger
 
 ### Metrics
+
 - **Prometheus client**: Export metrics
 - **Grafana**: Visualize metrics dashboard
 
 ### Tracing
+
 - **OpenTelemetry**: Distributed tracing
 - **Jaeger**: Trace visualization
 
 ### Error Tracking
+
 - **Sentry**: Production error monitoring
 - **Rollbar**: Real-time error alerts

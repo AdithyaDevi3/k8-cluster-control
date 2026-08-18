@@ -7,6 +7,7 @@
 **Decision**: Use SSE for log streaming instead of WebSockets
 
 **Pros**:
+
 - ✅ Simpler implementation - native EventSource API in browsers
 - ✅ No additional npm dependencies (ws package not needed)
 - ✅ Automatic reconnection built into EventSource
@@ -15,12 +16,14 @@
 - ✅ Sufficient for unidirectional server→client streaming
 
 **Cons**:
+
 - ❌ Unidirectional only (server to client)
 - ❌ No binary data support (text-only)
 - ❌ Limited browser connection pool (6 connections per domain)
 - ❌ No native compression (vs WebSocket binary frames)
 
 **Why SSE Won**:
+
 - Log streaming is inherently unidirectional (server→client)
 - User commands use standard REST POST endpoints
 - Simpler to implement and debug
@@ -36,6 +39,7 @@
 **Decision**: Use vanilla JavaScript with ES6 modules instead of a framework
 
 **Pros**:
+
 - ✅ Zero build step required - faster development iteration
 - ✅ Smaller bundle size - no framework overhead
 - ✅ Complete control over rendering and updates
@@ -44,6 +48,7 @@
 - ✅ Faster initial page load
 
 **Cons**:
+
 - ❌ Manual DOM manipulation more verbose
 - ❌ No reactive state management out-of-the-box
 - ❌ More boilerplate for complex UI components
@@ -51,6 +56,7 @@
 - ❌ Harder to maintain at scale (100k+ LOC)
 
 **Why Vanilla JS Won**:
+
 - Application UI is primarily 3D (Three.js), not DOM-heavy
 - Detail panels are simple forms and tables
 - Fast prototyping without build tooling overhead
@@ -66,6 +72,7 @@
 **Decision**: Use THREE.InstancedMesh for rendering thousands of pods
 
 **Pros**:
+
 - ✅ Massive performance improvement - 1000+ pods at 60fps
 - ✅ Single draw call for all instances of same geometry
 - ✅ GPU-side matrix transformations
@@ -73,6 +80,7 @@
 - ✅ Scales to 10k+ objects without performance degradation
 
 **Cons**:
+
 - ❌ All instances share same geometry (sphere for pods)
 - ❌ Cannot individually hide/show instances easily
 - ❌ Color/position updates require buffer updates
@@ -80,6 +88,7 @@
 - ❌ Harder to debug individual instance state
 
 **Why Instancing Won**:
+
 - Kubernetes clusters routinely have 100-1000+ pods
 - Individual meshes caused frame drops at ~200 pods
 - Uniform appearance acceptable for pod visualization
@@ -95,6 +104,7 @@
 **Decision**: Use in-memory JavaScript Map with 30s TTL instead of external cache
 
 **Pros**:
+
 - ✅ No external dependencies - simpler deployment
 - ✅ Zero network latency - instant cache hits
 - ✅ Easier to reason about - single process state
@@ -102,6 +112,7 @@
 - ✅ Sufficient for single-instance development tool
 
 **Cons**:
+
 - ❌ Doesn't persist across server restarts
 - ❌ Not shared across multiple server instances
 - ❌ Limited by Node.js heap size (~1.4GB default)
@@ -109,6 +120,7 @@
 - ❌ No eviction policies (LRU, LFU) - just TTL
 
 **Why In-Memory Won**:
+
 - Target use case: single developer on localhost
 - Cluster data changes frequently anyway (30s TTL)
 - Typical cluster data ~1-10MB, well within heap limits
@@ -124,18 +136,21 @@
 **Decision**: Mix of @kubernetes/client-node and kubectl subprocess calls
 
 **client-node used for**:
+
 - ✅ Listing resources (pods, nodes, services)
 - ✅ Log streaming (k8s.Log API)
 - ✅ Command execution (k8s.Exec API)
 - ✅ Watch API for real-time updates (future)
 
 **kubectl subprocess used for**:
+
 - ✅ Manifest diff (kubectl diff --server-side)
 - ✅ Manifest apply (kubectl apply -f -)
 - ✅ Complex operations not well-supported by client-node
 - ✅ Leverages kubectl's built-in validation and formatting
 
 **Tradeoffs**:
+
 - **Pro**: Best of both worlds - native streaming + kubectl power
 - **Pro**: kubectl handles complex YAML edge cases
 - **Pro**: Easier error messages from kubectl vs parsing API responses
@@ -144,6 +159,7 @@
 - **Con**: No typed interfaces - parse stdout/stderr
 
 **Why Mixed Approach Won**:
+
 - client-node excels at streaming (logs, exec)
 - kubectl superior for manifest operations (diff, apply, validation)
 - Kubectl already required by users (K8s developers)
@@ -158,6 +174,7 @@
 **Decision**: Stateless application with no database
 
 **Pros**:
+
 - ✅ Simpler deployment - no DB setup required
 - ✅ Kubernetes API is source of truth
 - ✅ Easier to horizontally scale (no shared state)
@@ -165,6 +182,7 @@
 - ✅ Faster iteration without ORM layer
 
 **Cons**:
+
 - ❌ Cannot store user preferences persistently
 - ❌ No audit log of historical operations
 - ❌ Cannot save custom layouts or bookmarks
@@ -172,6 +190,7 @@
 - ❌ No analytics or usage tracking
 
 **Why Stateless Won**:
+
 - MVP focused on real-time cluster visualization
 - Kubernetes already stores all resource state
 - User preferences can be added later (localStorage → DB migration)
@@ -187,6 +206,7 @@
 **Decision**: Use simple textarea for manifest editing (Monaco optional future upgrade)
 
 **Pros**:
+
 - ✅ Zero bundle size - no editor library
 - ✅ Native browser editing experience
 - ✅ Works on mobile devices
@@ -194,6 +214,7 @@
 - ✅ Sufficient for small YAML manifests
 
 **Cons**:
+
 - ❌ No syntax highlighting
 - ❌ No auto-completion
 - ❌ No error squiggles for invalid YAML
@@ -201,6 +222,7 @@
 - ❌ Harder to edit large manifests (1000+ lines)
 
 **Why Textarea Won** (for MVP):
+
 - Most K8s manifests <200 lines
 - Developers already familiar with YAML syntax
 - Can validate on server-side (kubectl dry-run)
@@ -216,18 +238,21 @@
 **Decision**: Default to namespace-aware grouping layout
 
 **Pros**:
+
 - ✅ Logical organization - pods grouped by namespace
 - ✅ Easier to understand cluster structure
 - ✅ Aligns with Kubernetes multi-tenancy model
 - ✅ Reduces visual clutter in dense clusters
 
 **Cons**:
+
 - ❌ More complex layout algorithm (Poisson disc per namespace)
 - ❌ Harder to see cross-namespace relationships
 - ❌ Empty space between namespace groups
 - ❌ Not suitable for single-namespace clusters
 
 **Why Namespace Grouping Won**:
+
 - Production clusters typically multi-tenant (10-50 namespaces)
 - Matches mental model of Kubernetes operators
 - Provides multiple layout options (radial, flat, grouped)
@@ -242,17 +267,20 @@
 **Decision**: Hardcode port 3000 with environment variable override
 
 **Pros**:
+
 - ✅ Predictable default - easy to remember
 - ✅ Standard convention (React, Next.js, many Node servers)
 - ✅ Simpler documentation - "visit localhost:3000"
 - ✅ Can override with PORT env var if needed
 
 **Cons**:
+
 - ❌ Conflicts if port 3000 already in use
 - ❌ Not flexible for multi-instance testing
 - ❌ Hardcoded in client-side fetch URLs
 
 **Why Port 3000 Won**:
+
 - Developer tool - conflicts rare in typical environments
 - Easy to kill existing process: `lsof -ti:3000 | xargs kill`
 - Can use PORT=3001 for secondary instance
@@ -267,17 +295,20 @@
 **Decision**: Dark theme only with CSS variables for future theming
 
 **Pros**:
+
 - ✅ Simpler CSS - single color scheme
 - ✅ Better for 3D visualization (less eye strain)
 - ✅ Terminal aesthetic matches kubectl/developer tools
 - ✅ Easier to ensure readability - test one theme
 
 **Cons**:
+
 - ❌ Not accessible for users preferring light themes
 - ❌ Harder to use in bright environments
 - ❌ No system preference matching (prefers-color-scheme)
 
 **Why Dark Theme Won**:
+
 - Target audience: developers comfortable with dark terminals
 - 3D visualization benefits from dark background
 - CSS variables prepared for future theme switching
@@ -289,22 +320,23 @@
 
 ## Summary of Tradeoffs
 
-| Decision | Optimized For | Sacrificed |
-|----------|---------------|------------|
-| SSE over WebSockets | Simplicity, HTTP compatibility | Bidirectional comm |
-| Vanilla JS | Fast iteration, small bundle | Framework features |
-| GPU Instancing | Performance (10k+ pods) | Per-instance control |
-| In-memory cache | Zero dependencies | Multi-instance support |
-| Mixed kubectl/client-node | Best tool per job | Consistency |
-| No database | Stateless simplicity | Persistence |
-| Textarea editor | Small bundle size | Syntax highlighting |
-| Namespace grouping | Logical organization | Flat simplicity |
-| Port 3000 | Convention, docs | Flexibility |
-| Dark theme only | 3D clarity, simplicity | Theme choice |
+| Decision                  | Optimized For                  | Sacrificed             |
+| ------------------------- | ------------------------------ | ---------------------- |
+| SSE over WebSockets       | Simplicity, HTTP compatibility | Bidirectional comm     |
+| Vanilla JS                | Fast iteration, small bundle   | Framework features     |
+| GPU Instancing            | Performance (10k+ pods)        | Per-instance control   |
+| In-memory cache           | Zero dependencies              | Multi-instance support |
+| Mixed kubectl/client-node | Best tool per job              | Consistency            |
+| No database               | Stateless simplicity           | Persistence            |
+| Textarea editor           | Small bundle size              | Syntax highlighting    |
+| Namespace grouping        | Logical organization           | Flat simplicity        |
+| Port 3000                 | Convention, docs               | Flexibility            |
+| Dark theme only           | 3D clarity, simplicity         | Theme choice           |
 
 ## Decision Framework
 
 When making future tradeoff decisions:
+
 1. **Favor simplicity** over features (MVP mindset)
 2. **Defer complexity** until evidence of need
 3. **Optimize for iteration speed** during development

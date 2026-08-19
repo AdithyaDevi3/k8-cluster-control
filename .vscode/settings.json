@@ -3,6 +3,8 @@
         "/^node -e \"require\\('\\./src/server/index'\\)\"$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "git push": true,
+        "git ls-remote": true
     }
 }

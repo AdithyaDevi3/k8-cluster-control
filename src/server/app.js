@@ -4,6 +4,8 @@ const cors = require('cors');
 const clusterRoutes = require('./routes/clusters');
 const toolRoutes = require('./routes/tools');
 const kindRoutes = require('./routes/kind');
+const logsRoutes = require('./routes/logs');
+const manifestRoutes = require('./routes/manifests');
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.get('/readyz', (req, res) => {
 app.use('/api/clusters', clusterRoutes);
 app.use('/api/tools', toolRoutes);
 app.use('/api/kind', kindRoutes);
+app.use('/api/logs', logsRoutes);
+app.use('/api/manifests', manifestRoutes);
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/index.html'));

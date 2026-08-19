@@ -154,7 +154,7 @@ async function bootstrap() {
       await refreshHistory();
     });
 
-    galaxy.renderClusters(clusters);
+    galaxy.renderClusters(filteredClusters);
     if (selectedCluster) {
       await renderClusterInfo(selectedCluster);
       await refreshHistory();

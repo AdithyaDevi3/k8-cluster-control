@@ -169,10 +169,12 @@ async function bootstrap() {
       ]);
       galaxy.renderClusterObjects(cluster.id, filterObjects(objects, objectSearchTerm));
       ui.renderNodeHealth(cluster, nodes);
+      ui.renderTopologySummary(cluster, objects);
       renderClusterOperations(cluster);
     } catch (error) {
       console.error('Failed to render cluster info:', error);
       ui.renderClusterDetails(cluster);
+      ui.renderTopologySummary(cluster, []);
       renderClusterOperations(cluster);
     }
   }

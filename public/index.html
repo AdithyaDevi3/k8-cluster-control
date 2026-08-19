@@ -30,6 +30,16 @@
         <aside class="sidebar">
           <section class="panel">
             <h2>Clusters</h2>
+            <div class="search-panel">
+              <label class="search-field" for="clusterSearchInput">
+                <span>Search clusters</span>
+                <input id="clusterSearchInput" type="search" placeholder="Name, context, status, region" />
+              </label>
+              <label class="search-field" for="objectSearchInput">
+                <span>Search objects</span>
+                <input id="objectSearchInput" type="search" placeholder="Pod, deployment, service, namespace" />
+              </label>
+            </div>
             <div id="clusterList" class="cluster-list"></div>
           </section>
 

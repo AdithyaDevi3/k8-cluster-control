@@ -107,6 +107,24 @@ select {
   min-height: 220px;
 }
 
+.search-panel {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.search-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted-text);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+}
+
+.search-field input {
+  width: 100%;
+}
+
 .sidebar .panel {
   display: flex;
   flex-direction: column;

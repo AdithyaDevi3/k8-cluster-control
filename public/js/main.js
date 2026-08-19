@@ -5,6 +5,8 @@ async function bootstrap() {
   const viewer = document.getElementById('viewer');
   const toolStatus = document.getElementById('toolStatus');
   const refreshButton = document.getElementById('refreshButton');
+  const clusterSearchInput = document.getElementById('clusterSearchInput');
+  const objectSearchInput = document.getElementById('objectSearchInput');
   const interpretCommandButton = document.getElementById('interpretCommandButton');
   const runCommandButton = document.getElementById('runCommandButton');
   const applyClarificationsButton = document.getElementById('applyClarificationsButton');
@@ -28,6 +30,20 @@ async function bootstrap() {
   let clusters = [];
   let selectedCluster = null;
   let interpretation = null;
+  let clusterSearchTerm = '';
+  let objectSearchTerm = '';
+
+  clusterSearchInput.addEventListener('input', async () => {
+    clusterSearchTerm = clusterSearchInput.value.trim().toLowerCase();
+    await renderClustersView();
+  });
+
+  objectSearchInput.addEventListener('input', async () => {
+    objectSearchTerm = objectSearchInput.value.trim().toLowerCase();
+    if (selectedCluster) {
+      await renderClusterInfo(selectedCluster);
+    }
+  });
 
   refreshButton.addEventListener('click', async () => {
     await refresh();
@@ -115,7 +131,22 @@ async function bootstrap() {
       .map((tool) => `<span class="status-pill">${tool.name}: ${tool.installed ? '✔️ ' + tool.version : '❌ missing'}</span>`)
       .join(' ');
 
-    ui.renderClusterList(clusters, selectedCluster?.id, async (newCluster) => {
+    await renderClustersView();
+
+    if (selectedCluster) {
+      await renderClusterInfo(selectedCluster);
+      await refreshHistory();
+    }
+  }
+
+  async function renderClustersView() {
+    const filteredClusters = filterClusters(clusters, clusterSearchTerm);
+    if (selectedCluster && !filteredClusters.some((cluster) => cluster.id === selectedCluster.id)) {
+      selectedCluster = filteredClusters[0] || null;
+      updateTargetContext();
+    }
+
+    ui.renderClusterList(filteredClusters, selectedCluster?.id, async (newCluster) => {
       selectedCluster = newCluster;
       updateTargetContext();
       galaxy.selectCluster(newCluster.id);
@@ -136,7 +167,7 @@ async function bootstrap() {
         ui.fetchClusterObjects(cluster.id),
         ui.fetchNodes(cluster.id).catch(() => [])
       ]);
-      galaxy.renderClusterObjects(cluster.id, objects);
+      galaxy.renderClusterObjects(cluster.id, filterObjects(objects, objectSearchTerm));
       ui.renderNodeHealth(cluster, nodes);
     } catch (error) {
       console.error('Failed to render cluster info:', error);
@@ -256,6 +287,37 @@ async function bootstrap() {
   function renderRisk(risk) {
     riskBadge.className = `risk-badge ${risk || 'unknown'}`;
     riskBadge.textContent = risk === 'read' ? 'Read only' : risk === 'write' ? 'Changes state' : risk === 'destructive' ? 'Destructive' : 'Needs review';
+  }
+
+  function filterClusters(sourceClusters, term) {
+    if (!term) return sourceClusters;
+    return sourceClusters.filter((cluster) => {
+      const haystack = [cluster.name, cluster.kubeContext, cluster.status, cluster.region, cluster.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }
+
+  function filterObjects(objects, term) {
+    if (!term) return objects;
+    return objects.filter((object) => {
+      const haystack = [
+        object.name,
+        object.label,
+        object.type,
+        object.kind,
+        object.status,
+        object.namespace,
+        object.nodeName,
+        JSON.stringify(object.labels || {})
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
   }
 
   function setCommandState(state, label) {

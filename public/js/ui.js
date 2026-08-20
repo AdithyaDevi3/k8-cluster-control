@@ -40,6 +40,60 @@ function renderClusterDetails(cluster) {
   detailsContent.appendChild(createDetailCard('Nodes', cluster.metadata?.nodes ?? 'unknown'));
 }
 
+function renderTopologySummary(cluster, objects) {
+  const topologyCard = document.createElement('div');
+  topologyCard.className = 'detail-card topology-card';
+  topologyCard.innerHTML = '<strong>Service topology</strong>';
+
+  if (!objects || !objects.length) {
+    topologyCard.appendChild(createDetailCard('Topology', 'No workload objects found for this cluster.'));
+    detailsContent.appendChild(topologyCard);
+    return;
+  }
+
+  const deployments = objects.filter((object) => object.kind === 'Deployment');
+  const services = objects.filter((object) => object.kind === 'Service');
+  const pods = objects.filter((object) => object.kind === 'Pod');
+
+  topologyCard.appendChild(createDetailCard('Workloads', `${deployments.length} deployments, ${services.length} services, ${pods.length} pods`));
+
+  const serviceTopology = services.slice(0, 4).map((service) => {
+    const selector = service.metadata?.selector || {};
+    const selectorEntries = Object.entries(selector);
+    const matches = selectorEntries.length
+      ? pods.filter((pod) => selectorEntries.every(([key, value]) => pod.metadata?.labels?.[key] === value))
+      : [];
+    const targetNames = matches.length
+      ? matches.map((pod) => `${pod.namespace}/${pod.label}`).join(', ')
+      : 'No matching pods found';
+    return createDetailCard(
+      `${service.namespace}/${service.label}`,
+      `Selector: ${selectorEntries.length ? selectorEntries.map(([key, value]) => `${key}=${value}`).join(', ') : 'none'}<br/>Targets: ${targetNames}`
+    );
+  });
+
+  if (serviceTopology.length) {
+    serviceTopology.forEach((card) => topologyCard.appendChild(card));
+  } else {
+    topologyCard.appendChild(createDetailCard('Services', 'No services available to map.'));
+  }
+
+  const deploymentTopology = deployments.slice(0, 4).map((deployment) => {
+    const selector = deployment.metadata?.selector || {};
+    const selectorEntries = Object.entries(selector);
+    const targets = selectorEntries.length
+      ? pods.filter((pod) => selectorEntries.every(([key, value]) => pod.metadata?.labels?.[key] === value))
+      : [];
+    return createDetailCard(
+      `${deployment.namespace}/${deployment.label}`,
+      `Selector: ${selectorEntries.length ? selectorEntries.map(([key, value]) => `${key}=${value}`).join(', ') : 'none'}<br/>Pods: ${targets.length ? targets.map((pod) => pod.label).join(', ') : 'No pod matches found'}`
+    );
+  });
+
+  deploymentTopology.forEach((card) => topologyCard.appendChild(card));
+  detailsContent.appendChild(topologyCard);
+}
+
 function renderSelectionDetails(cluster, object, actions = {}) {
   selectionContent.innerHTML = '';
   selectionContent.appendChild(createDetailCard('Cluster', cluster.name));
@@ -344,6 +398,7 @@ function escapeHtml(text) {
 export const ui = {
   renderClusterList,
   renderClusterDetails,
+  renderTopologySummary,
   renderSelectionDetails,
   fetchClusters,
   fetchClusterObjects,

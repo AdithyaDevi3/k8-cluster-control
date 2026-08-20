@@ -5,6 +5,8 @@ async function bootstrap() {
   const viewer = document.getElementById('viewer');
   const toolStatus = document.getElementById('toolStatus');
   const refreshButton = document.getElementById('refreshButton');
+  const clusterSearchInput = document.getElementById('clusterSearchInput');
+  const objectSearchInput = document.getElementById('objectSearchInput');
   const interpretCommandButton = document.getElementById('interpretCommandButton');
   const runCommandButton = document.getElementById('runCommandButton');
   const applyClarificationsButton = document.getElementById('applyClarificationsButton');
@@ -28,6 +30,20 @@ async function bootstrap() {
   let clusters = [];
   let selectedCluster = null;
   let interpretation = null;
+  let clusterSearchTerm = '';
+  let objectSearchTerm = '';
+
+  clusterSearchInput.addEventListener('input', async () => {
+    clusterSearchTerm = clusterSearchInput.value.trim().toLowerCase();
+    await renderClustersView();
+  });
+
+  objectSearchInput.addEventListener('input', async () => {
+    objectSearchTerm = objectSearchInput.value.trim().toLowerCase();
+    if (selectedCluster) {
+      await renderClusterInfo(selectedCluster);
+    }
+  });
 
   refreshButton.addEventListener('click', async () => {
     await refresh();
@@ -115,7 +131,22 @@ async function bootstrap() {
       .map((tool) => `<span class="status-pill">${tool.name}: ${tool.installed ? '✔️ ' + tool.version : '❌ missing'}</span>`)
       .join(' ');
 
-    ui.renderClusterList(clusters, selectedCluster?.id, async (newCluster) => {
+    await renderClustersView();
+
+    if (selectedCluster) {
+      await renderClusterInfo(selectedCluster);
+      await refreshHistory();
+    }
+  }
+
+  async function renderClustersView() {
+    const filteredClusters = filterClusters(clusters, clusterSearchTerm);
+    if (selectedCluster && !filteredClusters.some((cluster) => cluster.id === selectedCluster.id)) {
+      selectedCluster = filteredClusters[0] || null;
+      updateTargetContext();
+    }
+
+    ui.renderClusterList(filteredClusters, selectedCluster?.id, async (newCluster) => {
       selectedCluster = newCluster;
       updateTargetContext();
       galaxy.selectCluster(newCluster.id);
@@ -123,7 +154,7 @@ async function bootstrap() {
       await refreshHistory();
     });
 
-    galaxy.renderClusters(clusters);
+    galaxy.renderClusters(filteredClusters);
     if (selectedCluster) {
       await renderClusterInfo(selectedCluster);
       await refreshHistory();
@@ -136,11 +167,15 @@ async function bootstrap() {
         ui.fetchClusterObjects(cluster.id),
         ui.fetchNodes(cluster.id).catch(() => [])
       ]);
-      galaxy.renderClusterObjects(cluster.id, objects);
+      galaxy.renderClusterObjects(cluster.id, filterObjects(objects, objectSearchTerm));
       ui.renderNodeHealth(cluster, nodes);
+      ui.renderTopologySummary(cluster, objects);
+      renderClusterOperations(cluster);
     } catch (error) {
       console.error('Failed to render cluster info:', error);
       ui.renderClusterDetails(cluster);
+      ui.renderTopologySummary(cluster, []);
+      renderClusterOperations(cluster);
     }
   }
 
@@ -256,6 +291,119 @@ async function bootstrap() {
   function renderRisk(risk) {
     riskBadge.className = `risk-badge ${risk || 'unknown'}`;
     riskBadge.textContent = risk === 'read' ? 'Read only' : risk === 'write' ? 'Changes state' : risk === 'destructive' ? 'Destructive' : 'Needs review';
+  }
+
+  function renderClusterOperations(cluster) {
+    const operationsCard = document.createElement('div');
+    operationsCard.className = 'detail-card cluster-operations-card';
+    operationsCard.innerHTML = '<strong>Cluster operations</strong>';
+
+    const description = document.createElement('div');
+    description.className = 'cluster-operations-note';
+    description.textContent = 'Generate a kubectl command for the current cluster, then review and run it through the command console.';
+    operationsCard.appendChild(description);
+
+    const actions = [
+      {
+        label: 'Scale deployment',
+        command: () => promptForCommand('Scale deployment', 'deployment', (name, namespace, value) => `kubectl --context ${cluster.kubeContext} scale deployment/${name} -n ${namespace} --replicas=${value}`, 'Replicas', '3')
+      },
+      {
+        label: 'Cordon node',
+        command: () => promptForCommand('Cordon node', 'node', (name) => `kubectl --context ${cluster.kubeContext} cordon ${name}`, null, '')
+      },
+      {
+        label: 'Drain node',
+        command: () => promptForCommand('Drain node', 'node', (name) => `kubectl --context ${cluster.kubeContext} drain ${name} --ignore-daemonsets --delete-emptydir-data`, null, '')
+      },
+      {
+        label: 'Delete resource',
+        command: () => promptForDeleteCommand(cluster)
+      }
+    ];
+
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'cluster-operations-grid';
+
+    actions.forEach((action) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary-button cluster-operation-button';
+      button.textContent = action.label;
+      button.addEventListener('click', action.command);
+      buttonRow.appendChild(button);
+    });
+
+    operationsCard.appendChild(buttonRow);
+    detailsContent.appendChild(operationsCard);
+  }
+
+  function promptForCommand(title, resourceLabel, buildCommand, valueLabel, defaultValue) {
+    const name = window.prompt(`${title}: enter ${resourceLabel} name`);
+    if (!name) return;
+    const namespace = window.prompt(`${title}: enter namespace`, 'default') || 'default';
+    let value = defaultValue;
+    if (valueLabel) {
+      const response = window.prompt(`${title}: enter ${valueLabel}`, defaultValue);
+      if (response === null) return;
+      value = response;
+    }
+    loadCommandIntoConsole(buildCommand(name.trim(), namespace.trim(), String(value).trim()));
+  }
+
+  function promptForDeleteCommand(cluster) {
+    const kind = window.prompt('Delete resource: enter kind', 'deployment');
+    if (!kind) return;
+    const name = window.prompt('Delete resource: enter resource name');
+    if (!name) return;
+    const namespace = window.prompt('Delete resource: enter namespace', 'default') || 'default';
+    loadCommandIntoConsole(`kubectl --context ${cluster.kubeContext} delete ${kind.trim()} ${name.trim()} -n ${namespace.trim()}`);
+  }
+
+  function loadCommandIntoConsole(command) {
+    commandInput.value = command;
+    commandPreviewPanel.hidden = false;
+    interpretationPanel.hidden = false;
+    terminalPanel.hidden = true;
+    applyClarificationsButton.hidden = true;
+    clarificationFields.innerHTML = '';
+    commandExplanation.textContent = 'Generated from cluster operations. Review the command before executing it.';
+    riskBadge.className = 'risk-badge write';
+    riskBadge.textContent = 'Generated command';
+    dryRunToggle.checked = true;
+    dryRunToggle.disabled = false;
+    setCommandState('ready', 'Ready');
+  }
+
+  function filterClusters(sourceClusters, term) {
+    if (!term) return sourceClusters;
+    return sourceClusters.filter((cluster) => {
+      const haystack = [cluster.name, cluster.kubeContext, cluster.status, cluster.region, cluster.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }
+
+  function filterObjects(objects, term) {
+    if (!term) return objects;
+    return objects.filter((object) => {
+      const haystack = [
+        object.name,
+        object.label,
+        object.type,
+        object.kind,
+        object.status,
+        object.namespace,
+        object.nodeName,
+        JSON.stringify(object.labels || {})
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
   }
 
   function setCommandState(state, label) {

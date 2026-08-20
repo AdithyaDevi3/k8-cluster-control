@@ -43,7 +43,7 @@ function renderClusterDetails(cluster) {
 function renderTopologySummary(cluster, objects) {
   const topologyCard = document.createElement('div');
   topologyCard.className = 'detail-card topology-card';
-  topologyCard.innerHTML = '<strong>Service topology</strong>';
+  topologyCard.innerHTML = '<strong>Service and network topology</strong>';
 
   if (!objects || !objects.length) {
     topologyCard.appendChild(createDetailCard('Topology', 'No workload objects found for this cluster.'));
@@ -63,12 +63,18 @@ function renderTopologySummary(cluster, objects) {
     const matches = selectorEntries.length
       ? pods.filter((pod) => selectorEntries.every(([key, value]) => pod.metadata?.labels?.[key] === value))
       : [];
+    const ports = (service.metadata?.ports || [])
+      .map((port) => `${port.port}${port.targetPort ? `→${port.targetPort}` : ''}/${port.protocol || 'TCP'}`)
+      .join(', ') || 'No ports defined';
+    const exposure = [service.metadata?.type, service.metadata?.clusterIP, ...(service.metadata?.externalIPs || [])]
+      .filter(Boolean)
+      .join(' | ');
     const targetNames = matches.length
       ? matches.map((pod) => `${pod.namespace}/${pod.label}`).join(', ')
       : 'No matching pods found';
     return createDetailCard(
       `${service.namespace}/${service.label}`,
-      `Selector: ${selectorEntries.length ? selectorEntries.map(([key, value]) => `${key}=${value}`).join(', ') : 'none'}<br/>Targets: ${targetNames}`
+      `Selector: ${selectorEntries.length ? selectorEntries.map(([key, value]) => `${key}=${value}`).join(', ') : 'none'}<br/>Ports: ${ports}<br/>Exposure: ${exposure || 'Internal only'}<br/>Targets: ${targetNames}`
     );
   });
 
@@ -91,6 +97,21 @@ function renderTopologySummary(cluster, objects) {
   });
 
   deploymentTopology.forEach((card) => topologyCard.appendChild(card));
+
+  const networkSummary = createDetailCard(
+    'Network map',
+    services.length
+      ? services.slice(0, 4).map((service) => {
+          const selector = service.metadata?.selector || {};
+          const selectorEntries = Object.entries(selector);
+          const linkedPods = selectorEntries.length
+            ? pods.filter((pod) => selectorEntries.every(([key, value]) => pod.metadata?.labels?.[key] === value))
+            : [];
+          return `${service.label}: ${linkedPods.length ? linkedPods.map((pod) => pod.label).join(', ') : 'no pod targets discovered'}`;
+        }).join('<br/>')
+      : 'No services found to map.'
+  );
+  topologyCard.appendChild(networkSummary);
   detailsContent.appendChild(topologyCard);
 }
 

@@ -220,6 +220,16 @@ async function executeCommand(clusterId, command, options = {}) {
   return { ...result, httpStatus: res.status };
 }
 
+async function executeClusterOperation(clusterId, operation) {
+  const res = await fetch(`/api/clusters/${clusterId}/operations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(operation)
+  });
+  const result = await res.json();
+  return { ...result, httpStatus: res.status };
+}
+
 async function applyManifest(clusterId, manifest, options = {}) {
   const res = await fetch(`/api/clusters/${clusterId}/apply`, {
     method: 'POST',
@@ -428,6 +438,7 @@ export const ui = {
   renderHistory,
   interpretCommand,
   executeCommand,
+  executeClusterOperation,
   applyManifest,
   fetchNodes,
   fetchPodDetails,

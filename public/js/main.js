@@ -306,19 +306,19 @@ async function bootstrap() {
     const actions = [
       {
         label: 'Scale deployment',
-        command: () => promptForCommand('Scale deployment', 'deployment', (name, namespace, value) => `kubectl --context ${cluster.kubeContext} scale deployment/${name} -n ${namespace} --replicas=${value}`, 'Replicas', '3')
+        command: async () => promptAndRunOperation(cluster, 'scale')
       },
       {
         label: 'Cordon node',
-        command: () => promptForCommand('Cordon node', 'node', (name) => `kubectl --context ${cluster.kubeContext} cordon ${name}`, null, '')
+        command: async () => promptAndRunOperation(cluster, 'cordon')
       },
       {
         label: 'Drain node',
-        command: () => promptForCommand('Drain node', 'node', (name) => `kubectl --context ${cluster.kubeContext} drain ${name} --ignore-daemonsets --delete-emptydir-data`, null, '')
+        command: async () => promptAndRunOperation(cluster, 'drain')
       },
       {
         label: 'Delete resource',
-        command: () => promptForDeleteCommand(cluster)
+        command: async () => promptAndRunOperation(cluster, 'delete')
       }
     ];
 
@@ -338,26 +338,57 @@ async function bootstrap() {
     detailsContent.appendChild(operationsCard);
   }
 
-  function promptForCommand(title, resourceLabel, buildCommand, valueLabel, defaultValue) {
-    const name = window.prompt(`${title}: enter ${resourceLabel} name`);
-    if (!name) return;
-    const namespace = window.prompt(`${title}: enter namespace`, 'default') || 'default';
-    let value = defaultValue;
-    if (valueLabel) {
-      const response = window.prompt(`${title}: enter ${valueLabel}`, defaultValue);
-      if (response === null) return;
-      value = response;
-    }
-    loadCommandIntoConsole(buildCommand(name.trim(), namespace.trim(), String(value).trim()));
-  }
+  async function promptAndRunOperation(cluster, action) {
+    const operation = { action, dryRun: true, confirmed: false };
 
-  function promptForDeleteCommand(cluster) {
-    const kind = window.prompt('Delete resource: enter kind', 'deployment');
-    if (!kind) return;
-    const name = window.prompt('Delete resource: enter resource name');
-    if (!name) return;
-    const namespace = window.prompt('Delete resource: enter namespace', 'default') || 'default';
-    loadCommandIntoConsole(`kubectl --context ${cluster.kubeContext} delete ${kind.trim()} ${name.trim()} -n ${namespace.trim()}`);
+    if (action === 'scale') {
+      const resourceType = window.prompt('Scale deployment: enter resource type', 'deployment') || 'deployment';
+      const resourceName = window.prompt('Scale deployment: enter resource name');
+      if (!resourceName) return;
+      const namespace = window.prompt('Scale deployment: enter namespace', 'default') || 'default';
+      const replicas = window.prompt('Scale deployment: enter replica count', '3');
+      if (replicas === null) return;
+      operation.resourceType = resourceType.trim();
+      operation.resourceName = resourceName.trim();
+      operation.namespace = namespace.trim();
+      operation.replicas = Number(replicas);
+    } else if (action === 'cordon' || action === 'drain') {
+      const resourceName = window.prompt(`${action === 'cordon' ? 'Cordon' : 'Drain'} node: enter node name`);
+      if (!resourceName) return;
+      operation.resourceName = resourceName.trim();
+    } else if (action === 'delete') {
+      const resourceType = window.prompt('Delete resource: enter kind', 'deployment') || 'deployment';
+      const resourceName = window.prompt('Delete resource: enter resource name');
+      if (!resourceName) return;
+      const namespace = window.prompt('Delete resource: enter namespace', 'default') || 'default';
+      operation.resourceType = resourceType.trim();
+      operation.resourceName = resourceName.trim();
+      operation.namespace = namespace.trim();
+    }
+
+    setCommandState('running', 'Running');
+    terminalPanel.hidden = false;
+    terminalStatus.textContent = 'Running';
+    terminalOutput.textContent = `Executing ${action} operation...\n`;
+
+    let result = await ui.executeClusterOperation(cluster.id, operation);
+    if (result.confirmationRequired) {
+      const confirmed = window.confirm(`Confirm ${action} on ${cluster.name}?\n\n${result.command || 'kubectl operation'}`);
+      if (!confirmed) {
+        terminalStatus.textContent = 'Cancelled';
+        terminalOutput.textContent += 'Execution cancelled by user.';
+        setCommandState('ready', 'Ready');
+        await refreshHistory();
+        return;
+      }
+      result = await ui.executeClusterOperation(cluster.id, { ...operation, confirmed: true });
+    }
+
+    terminalStatus.textContent = result.success ? 'Completed' : 'Failed';
+    terminalOutput.textContent += result.command ? `${result.command}\n` : '';
+    terminalOutput.textContent += result.output || result.error || 'No output';
+    setCommandState(result.success ? 'ready' : 'error', result.success ? 'Complete' : 'Failed');
+    await refreshHistory();
   }
 
   function loadCommandIntoConsole(command) {

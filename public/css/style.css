@@ -212,6 +212,47 @@ select {
   padding: 16px;
 }
 
+.topology-graph {
+  width: 100%;
+  height: auto;
+  min-height: 220px;
+  margin-bottom: 10px;
+}
+
+.topology-node {
+  fill: rgba(15, 23, 42, 0.95);
+  stroke: rgba(148, 163, 184, 0.28);
+  stroke-width: 1;
+}
+
+.topology-node.service {
+  fill: rgba(16, 185, 129, 0.2);
+  stroke: rgba(16, 185, 129, 0.55);
+}
+
+.topology-node.deployment {
+  fill: rgba(124, 58, 237, 0.2);
+  stroke: rgba(124, 58, 237, 0.55);
+}
+
+.topology-node.pod {
+  fill: rgba(56, 189, 248, 0.18);
+  stroke: rgba(56, 189, 248, 0.55);
+}
+
+.topology-node-label {
+  fill: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  dominant-baseline: middle;
+}
+
+.topology-link {
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
 .command-box {
   display: grid;
   gap: 12px;

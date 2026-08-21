@@ -54,6 +54,8 @@ function renderTopologySummary(cluster, objects) {
   const deployments = objects.filter((object) => object.kind === 'Deployment');
   const services = objects.filter((object) => object.kind === 'Service');
   const pods = objects.filter((object) => object.kind === 'Pod');
+  const graph = createTopologyGraph(services, deployments, pods);
+  topologyCard.appendChild(graph);
 
   topologyCard.appendChild(createDetailCard('Workloads', `${deployments.length} deployments, ${services.length} services, ${pods.length} pods`));
 
@@ -113,6 +115,97 @@ function renderTopologySummary(cluster, objects) {
   );
   topologyCard.appendChild(networkSummary);
   detailsContent.appendChild(topologyCard);
+}
+
+function createTopologyGraph(services, deployments, pods) {
+  const width = 260;
+  const height = 220;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('class', 'topology-graph');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Service and deployment topology graph');
+
+  const nodes = [];
+  const serviceSlots = services.slice(0, 3).map((service, index) => ({
+    kind: 'service',
+    label: service.label,
+    x: 40,
+    y: 40 + index * 70,
+    payload: service
+  }));
+  const deploymentSlots = deployments.slice(0, 3).map((deployment, index) => ({
+    kind: 'deployment',
+    label: deployment.label,
+    x: 130,
+    y: 40 + index * 70,
+    payload: deployment
+  }));
+  const podSlots = pods.slice(0, 5).map((pod, index) => ({
+    kind: 'pod',
+    label: pod.label,
+    x: 220,
+    y: 30 + index * 40,
+    payload: pod
+  }));
+
+  nodes.push(...serviceSlots, ...deploymentSlots, ...podSlots);
+
+  serviceSlots.forEach((serviceNode) => {
+    const selectorEntries = Object.entries(serviceNode.payload.metadata?.selector || {});
+    const matchingPods = selectorEntries.length
+      ? podSlots.filter((podNode) => selectorEntries.every(([key, value]) => podNode.payload.metadata?.labels?.[key] === value))
+      : [];
+    if (matchingPods.length) {
+      matchingPods.forEach((podNode) => svg.appendChild(createTopologyLine(serviceNode.x + 20, serviceNode.y + 10, podNode.x - 20, podNode.y + 10)));
+    }
+  });
+
+  deploymentSlots.forEach((deploymentNode) => {
+    const selectorEntries = Object.entries(deploymentNode.payload.metadata?.selector || {});
+    const matchingPods = selectorEntries.length
+      ? podSlots.filter((podNode) => selectorEntries.every(([key, value]) => podNode.payload.metadata?.labels?.[key] === value))
+      : [];
+    matchingPods.forEach((podNode) => svg.appendChild(createTopologyLine(deploymentNode.x + 20, deploymentNode.y + 10, podNode.x - 20, podNode.y + 10, 'rgba(124, 58, 237, 0.7)')));
+  });
+
+  nodes.forEach((node) => {
+    const group = document.createElementNS(svgNS, 'g');
+    group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', '0');
+    rect.setAttribute('y', '0');
+    rect.setAttribute('rx', '10');
+    rect.setAttribute('width', node.kind === 'pod' ? '70' : '80');
+    rect.setAttribute('height', '24');
+    rect.setAttribute('class', `topology-node ${node.kind}`);
+    group.appendChild(rect);
+
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', '8');
+    text.setAttribute('y', '16');
+    text.setAttribute('class', 'topology-node-label');
+    text.textContent = node.label;
+    group.appendChild(text);
+
+    svg.appendChild(group);
+  });
+
+  return svg;
+}
+
+function createTopologyLine(x1, y1, x2, y2, color = 'rgba(56, 189, 248, 0.65)') {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const line = document.createElementNS(svgNS, 'line');
+  line.setAttribute('x1', x1);
+  line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2);
+  line.setAttribute('y2', y2);
+  line.setAttribute('class', 'topology-link');
+  line.setAttribute('stroke', color);
+  return line;
 }
 
 function renderSelectionDetails(cluster, object, actions = {}) {

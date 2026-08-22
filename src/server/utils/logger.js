@@ -1,5 +1,5 @@
 function info(message) {
-  console.log(`[server] ${message}`);
+  console.error(`[server] ${message}`);
 }
 
 function error(message) {

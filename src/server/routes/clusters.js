@@ -221,3 +221,4 @@ router.get('/:clusterId/namespaces/:namespace/pods/:podName', async (req, res) =
 });
 
 module.exports = router;
+module.exports.buildOperationCommand = buildOperationCommand;

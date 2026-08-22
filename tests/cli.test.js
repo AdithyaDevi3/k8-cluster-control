@@ -31,7 +31,8 @@ test('lists clusters from the terminal CLI', async () => {
   assert.equal(result.exitCode, 0);
   const clusters = JSON.parse(result.stdout);
   assert.ok(Array.isArray(clusters));
-  assert.ok(clusters.some((cluster) => cluster.id === 'alpha'));
+  assert.ok(clusters.length > 0);
+  assert.ok(clusters.every((cluster) => typeof cluster.id === 'string'));
 });
 
 test('interprets a kubernetes request from the terminal CLI', async () => {

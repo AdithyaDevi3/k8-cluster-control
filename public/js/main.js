@@ -11,6 +11,7 @@ async function bootstrap() {
   const runCommandButton = document.getElementById('runCommandButton');
   const applyClarificationsButton = document.getElementById('applyClarificationsButton');
   const applyManifestButton = document.getElementById('applyManifestButton');
+  const refreshHelmButton = document.getElementById('refreshHelmButton');
   const naturalCommandInput = document.getElementById('naturalCommandInput');
   const commandInput = document.getElementById('commandInput');
   const manifestInput = document.getElementById('manifestInput');
@@ -117,6 +118,12 @@ async function bootstrap() {
     await refreshHistory();
   });
 
+  refreshHelmButton.addEventListener('click', async () => {
+    if (selectedCluster) {
+      await refreshHelmReleases(selectedCluster);
+    }
+  });
+
   async function refresh() {
     const [toolResult, fetchedClusters] = await Promise.all([
       ui.fetchToolStatus(),
@@ -136,6 +143,7 @@ async function bootstrap() {
     if (selectedCluster) {
       await renderClusterInfo(selectedCluster);
       await refreshHistory();
+      await refreshHelmReleases(selectedCluster);
     }
   }
 
@@ -171,11 +179,23 @@ async function bootstrap() {
       ui.renderNodeHealth(cluster, nodes);
       ui.renderTopologySummary(cluster, objects);
       renderClusterOperations(cluster);
+      await refreshHelmReleases(cluster);
     } catch (error) {
       console.error('Failed to render cluster info:', error);
       ui.renderClusterDetails(cluster);
       ui.renderTopologySummary(cluster, []);
       renderClusterOperations(cluster);
+      ui.renderHelmReleases(cluster, { releases: [] });
+    }
+  }
+
+  async function refreshHelmReleases(cluster) {
+    try {
+      const releases = await ui.fetchHelmReleases(cluster.id);
+      ui.renderHelmReleases(cluster, releases);
+    } catch (error) {
+      console.error('Failed to fetch Helm releases:', error);
+      ui.renderHelmReleases(cluster, { releases: [] });
     }
   }
 

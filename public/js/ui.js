@@ -2,6 +2,7 @@ const clusterList = document.getElementById('clusterList');
 const detailsContent = document.getElementById('detailsContent');
 const selectionContent = document.getElementById('selectionContent');
 const historyContent = document.getElementById('historyContent');
+const helmReleaseList = document.getElementById('helmReleaseList');
 
 function normalizeKubectlCommand(command) {
   const text = String(command || '').trim();
@@ -346,6 +347,11 @@ async function fetchPodDetails(clusterId, namespace, podName) {
   return res.json();
 }
 
+async function fetchHelmReleases(clusterId) {
+  const res = await fetch(`/api/helm/${clusterId}/releases`);
+  return res.json();
+}
+
 function renderNodeHealth(cluster, nodes) {
   detailsContent.innerHTML = '<h3>Node Health Overview</h3>';
   
@@ -488,6 +494,32 @@ function renderPodDetails(cluster, pod) {
   }
 }
 
+function renderHelmReleases(cluster, payload) {
+  helmReleaseList.innerHTML = '';
+
+  if (!cluster) {
+    helmReleaseList.textContent = 'Select a cluster to view releases.';
+    return;
+  }
+
+  const releases = payload?.releases || [];
+  if (!releases.length) {
+    helmReleaseList.textContent = 'No Helm releases found for the selected cluster.';
+    return;
+  }
+
+  releases.forEach((release) => {
+    const card = document.createElement('div');
+    card.className = 'history-item';
+    card.innerHTML = `
+      <div class="history-title">${escapeHtml(release.name)}</div>
+      <div class="history-meta"><span>${escapeHtml(release.namespace || 'default')}</span><span>${escapeHtml(release.chart || 'unknown chart')}</span></div>
+      <div class="history-meta"><span>Revision ${escapeHtml(String(release.revision || ''))}</span><span>${escapeHtml(release.status || '')}</span></div>
+    `;
+    helmReleaseList.appendChild(card);
+  });
+}
+
 function formatMemory(memoryString) {
   if (!memoryString) return '0';
   
@@ -535,6 +567,8 @@ export const ui = {
   applyManifest,
   fetchNodes,
   fetchPodDetails,
+  fetchHelmReleases,
   renderNodeHealth,
-  renderPodDetails
+  renderPodDetails,
+  renderHelmReleases
 };

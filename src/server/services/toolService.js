@@ -3,7 +3,8 @@ const { execCommand } = require('../utils/exec');
 const requiredTools = [
   { name: 'kubectl', command: 'kubectl version --client --short' },
   { name: 'kind', command: 'kind version' },
-  { name: 'docker', command: 'docker version --format "{{.Server.Version}}"' }
+  { name: 'docker', command: 'docker version --format "{{.Server.Version}}"' },
+  { name: 'helm', command: 'helm version --short' }
 ];
 
 async function getToolStatus() {

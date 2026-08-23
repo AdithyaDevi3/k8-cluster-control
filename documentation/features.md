@@ -377,9 +377,9 @@ Success message → Modal closes
 
 ---
 
-### 9. Filters and Search 📋
+### 9. Filters and Search ✅
 
-**Status**: Planned (next feature in mid-term roadmap)
+**Status**: Complete (feat/filters-search, feat/search-filter-roadmap)
 
 **Proposed Capabilities**:
 
@@ -416,9 +416,9 @@ GET /api/clusters/:context/resources?filters={...}
 
 ---
 
-### 10. Cluster Operations 📋
+### 10. Cluster Operations ✅
 
-**Status**: Planned
+**Status**: Complete (feat/cluster-operations)
 
 **Proposed Capabilities**:
 
@@ -469,9 +469,9 @@ GET /api/clusters/:context/resources?filters={...}
 
 ---
 
-### 11. Network Topology Visualization 📋
+### 11. Network Topology Visualization ✅
 
-**Status**: Planned
+**Status**: Complete (feat/service-network-topology)
 
 **Proposed Capabilities**:
 
@@ -577,8 +577,8 @@ GET /api/clusters/:context/resources?filters={...}
 | Multi-cluster      | ✅            | ⚠️              | ✅                 |
 | Namespace grouping | ❌            | ⚠️              | ✅                 |
 | Kind integration   | ✅            | ❌              | ✅                 |
-| Node operations    | ✅            | ✅              | 📋                 |
-| Network topology   | ❌            | ⚠️              | 📋                 |
+| Node operations    | ✅            | ✅              | ✅                 |
+| Network topology   | ❌            | ⚠️              | ✅                 |
 | Helm support       | ✅ (helm CLI) | ❌              | 💡                 |
 | GitOps             | ❌            | ❌              | 💡                 |
 

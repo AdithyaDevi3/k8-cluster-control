@@ -12,6 +12,10 @@ async function bootstrap() {
   const applyClarificationsButton = document.getElementById('applyClarificationsButton');
   const applyManifestButton = document.getElementById('applyManifestButton');
   const refreshHelmButton = document.getElementById('refreshHelmButton');
+  const helmInstallButton = document.getElementById('helmInstallButton');
+  const helmUpgradeButton = document.getElementById('helmUpgradeButton');
+  const helmRollbackButton = document.getElementById('helmRollbackButton');
+  const helmUninstallButton = document.getElementById('helmUninstallButton');
   const naturalCommandInput = document.getElementById('naturalCommandInput');
   const commandInput = document.getElementById('commandInput');
   const manifestInput = document.getElementById('manifestInput');
@@ -124,6 +128,30 @@ async function bootstrap() {
     }
   });
 
+  helmInstallButton.addEventListener('click', async () => {
+    if (selectedCluster) {
+      await runHelmAction(selectedCluster, 'install');
+    }
+  });
+
+  helmUpgradeButton.addEventListener('click', async () => {
+    if (selectedCluster) {
+      await runHelmAction(selectedCluster, 'upgrade');
+    }
+  });
+
+  helmRollbackButton.addEventListener('click', async () => {
+    if (selectedCluster) {
+      await runHelmAction(selectedCluster, 'rollback');
+    }
+  });
+
+  helmUninstallButton.addEventListener('click', async () => {
+    if (selectedCluster) {
+      await runHelmAction(selectedCluster, 'uninstall');
+    }
+  });
+
   async function refresh() {
     const [toolResult, fetchedClusters] = await Promise.all([
       ui.fetchToolStatus(),
@@ -196,6 +224,47 @@ async function bootstrap() {
     } catch (error) {
       console.error('Failed to fetch Helm releases:', error);
       ui.renderHelmReleases(cluster, { releases: [] });
+    }
+  }
+
+  async function runHelmAction(cluster, action) {
+    const payload = { releaseName: window.prompt(`${action}: enter release name`) };
+    if (!payload.releaseName) return;
+
+    if (action === 'install' || action === 'upgrade') {
+      payload.chart = window.prompt(`${action}: enter chart reference`, 'bitnami/nginx');
+      if (!payload.chart) return;
+      payload.namespace = window.prompt(`${action}: enter namespace`, 'default') || 'default';
+      const valuesFile = window.prompt(`${action}: optional values file path`, '');
+      if (valuesFile) payload.valuesFile = valuesFile;
+      if (action === 'upgrade') {
+        payload.resetValues = window.confirm('Reset values for this upgrade?');
+      }
+    }
+
+    if (action === 'rollback') {
+      const revision = window.prompt('rollback: enter revision number (optional)', '');
+      if (revision) payload.revision = revision;
+      payload.namespace = window.prompt('rollback: enter namespace', 'default') || 'default';
+    }
+
+    if (action === 'uninstall') {
+      payload.namespace = window.prompt('uninstall: enter namespace', 'default') || 'default';
+    }
+
+    setCommandState('running', 'Running');
+    terminalPanel.hidden = false;
+    terminalStatus.textContent = 'Running';
+    terminalOutput.textContent = `Executing helm ${action}...\n`;
+
+    const result = await ui.executeHelmAction(cluster.id, action, payload);
+    terminalStatus.textContent = result.httpStatus >= 400 ? 'Failed' : 'Completed';
+    terminalOutput.textContent += result.command ? `${result.command}\n` : '';
+    terminalOutput.textContent += result.output || result.message || result.error || 'No output';
+    setCommandState(result.httpStatus >= 400 ? 'error' : 'ready', result.httpStatus >= 400 ? 'Failed' : 'Complete');
+
+    if (result.httpStatus < 400) {
+      await refreshHelmReleases(cluster);
     }
   }
 

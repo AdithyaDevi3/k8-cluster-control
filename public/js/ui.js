@@ -352,6 +352,16 @@ async function fetchHelmReleases(clusterId) {
   return res.json();
 }
 
+async function executeHelmAction(clusterId, action, payload = {}) {
+  const res = await fetch(`/api/helm/${clusterId}/releases/action`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...payload })
+  });
+  const result = await res.json();
+  return { ...result, httpStatus: res.status };
+}
+
 function renderNodeHealth(cluster, nodes) {
   detailsContent.innerHTML = '<h3>Node Health Overview</h3>';
   
@@ -511,6 +521,7 @@ function renderHelmReleases(cluster, payload) {
   releases.forEach((release) => {
     const card = document.createElement('div');
     card.className = 'history-item';
+    card.dataset.releaseName = release.name;
     card.innerHTML = `
       <div class="history-title">${escapeHtml(release.name)}</div>
       <div class="history-meta"><span>${escapeHtml(release.namespace || 'default')}</span><span>${escapeHtml(release.chart || 'unknown chart')}</span></div>
@@ -568,6 +579,7 @@ export const ui = {
   fetchNodes,
   fetchPodDetails,
   fetchHelmReleases,
+  executeHelmAction,
   renderNodeHealth,
   renderPodDetails,
   renderHelmReleases

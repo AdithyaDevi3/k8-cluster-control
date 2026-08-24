@@ -47,6 +47,11 @@ async function bootstrap() {
     objectSearchTerm = objectSearchInput.value.trim().toLowerCase();
     if (selectedCluster) {
       await renderClusterInfo(selectedCluster);
+      const objects = await ui.fetchClusterObjects(selectedCluster.id);
+      const filteredObjects = filterObjects(objects, objectSearchTerm);
+      if (!filteredObjects.length) {
+        ui.renderEmptySelection('No objects match the current search.');
+      }
     }
   });
 
@@ -167,7 +172,7 @@ async function bootstrap() {
       .join(' ');
 
     await renderClustersView();
-      await refreshGitOpsStatus(); // Refresh GitOps status when clusters are loaded
+    await refreshGitOpsStatus();
 
     if (selectedCluster) {
       await renderClusterInfo(selectedCluster);
@@ -204,16 +209,21 @@ async function bootstrap() {
         ui.fetchClusterObjects(cluster.id),
         ui.fetchNodes(cluster.id).catch(() => [])
       ]);
-      galaxy.renderClusterObjects(cluster.id, filterObjects(objects, objectSearchTerm));
+      const filteredObjects = filterObjects(objects, objectSearchTerm);
+      galaxy.renderClusterObjects(cluster.id, filteredObjects);
       ui.renderNodeHealth(cluster, nodes);
       ui.renderTopologySummary(cluster, objects);
       renderClusterOperations(cluster);
+      if (!filteredObjects.length) {
+        ui.renderEmptySelection('No objects match the current search.');
+      }
       await refreshHelmReleases(cluster);
     } catch (error) {
       console.error('Failed to render cluster info:', error);
       ui.renderClusterDetails(cluster);
       ui.renderTopologySummary(cluster, []);
       renderClusterOperations(cluster);
+      ui.renderEmptySelection('Object details are unavailable.');
       ui.renderHelmReleases(cluster, { releases: [] });
     }
   }
@@ -283,8 +293,10 @@ async function bootstrap() {
     updateTargetContext();
     ui.renderClusterList(clusters, cluster.id, async (newCluster) => {
       selectedCluster = newCluster;
+      updateTargetContext();
       galaxy.selectCluster(newCluster.id);
       await renderClusterInfo(newCluster);
+      await refreshHistory();
     });
     await renderClusterInfo(cluster);
     await refreshHistory();

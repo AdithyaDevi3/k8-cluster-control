@@ -13,6 +13,10 @@ function normalizeKubectlCommand(command) {
 
 function renderClusterList(clusters, selectedClusterId, onSelect) {
   clusterList.innerHTML = '';
+  if (!clusters.length) {
+    clusterList.innerHTML = '<div class="cluster-card empty-state">No clusters match the current search.</div>';
+    return;
+  }
   clusters.forEach((cluster) => {
     const card = document.createElement('div');
     card.className = 'cluster-card';
@@ -248,6 +252,11 @@ function renderSelectionDetails(cluster, object, actions = {}) {
     manifestCard.appendChild(editButton);
     selectionContent.appendChild(manifestCard);
   }
+}
+
+function renderEmptySelection(message) {
+  selectionContent.innerHTML = '';
+  selectionContent.appendChild(createDetailCard('Selection', message));
 }
 
 function createDetailCard(title, body) {
@@ -616,6 +625,7 @@ export const ui = {
   executeHelmAction,
   renderNodeHealth,
   renderPodDetails,
+  renderEmptySelection,
   renderHelmReleases,
   renderGitOpsStatus
 };

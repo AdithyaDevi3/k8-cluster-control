@@ -3,6 +3,7 @@ const detailsContent = document.getElementById('detailsContent');
 const selectionContent = document.getElementById('selectionContent');
 const historyContent = document.getElementById('historyContent');
 const helmReleaseList = document.getElementById('helmReleaseList');
+const gitopsStatus = document.getElementById('gitopsStatus');
 
 function normalizeKubectlCommand(command) {
   const text = String(command || '').trim();
@@ -352,6 +353,11 @@ async function fetchHelmReleases(clusterId) {
   return res.json();
 }
 
+async function fetchGitOpsStatus() {
+  const res = await fetch('/api/gitops/status');
+  return res.json();
+}
+
 async function executeHelmAction(clusterId, action, payload = {}) {
   const res = await fetch(`/api/helm/${clusterId}/releases/action`, {
     method: 'POST',
@@ -531,6 +537,33 @@ function renderHelmReleases(cluster, payload) {
   });
 }
 
+function renderGitOpsStatus(payload) {
+  if (!gitopsStatus) return;
+
+  if (!payload || !payload.connected) {
+    gitopsStatus.innerHTML = `<div class="history-item">${escapeHtml(payload?.error || 'Git state unavailable')}</div>`;
+    return;
+  }
+
+  const remoteSummary = (payload.remotes || []).map((remote) => `${remote.name}: ${remote.url}`).join('<br>') || 'No remotes configured';
+  const dirtySummary = payload.clean ? 'Working tree clean' : `${payload.dirtyFiles.length} modified path(s)`;
+
+  gitopsStatus.innerHTML = `
+    <div class="gitops-status">
+      <div class="gitops-metadata">
+        <span class="gitops-chip">Branch: ${escapeHtml(payload.branch)}</span>
+        <span class="gitops-chip">Ahead: ${escapeHtml(String(payload.ahead || 0))}</span>
+        <span class="gitops-chip">Behind: ${escapeHtml(String(payload.behind || 0))}</span>
+        <span class="gitops-chip ${payload.clean ? '' : 'danger'}">${escapeHtml(dirtySummary)}</span>
+      </div>
+      <div class="history-item">
+        <div class="history-title">Remotes</div>
+        <div class="history-meta">${remoteSummary}</div>
+      </div>
+    </div>
+  `;
+}
+
 function formatMemory(memoryString) {
   if (!memoryString) return '0';
   
@@ -579,8 +612,10 @@ export const ui = {
   fetchNodes,
   fetchPodDetails,
   fetchHelmReleases,
+  fetchGitOpsStatus,
   executeHelmAction,
   renderNodeHealth,
   renderPodDetails,
-  renderHelmReleases
+  renderHelmReleases,
+  renderGitOpsStatus
 };

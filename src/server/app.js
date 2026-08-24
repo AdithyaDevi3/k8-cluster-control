@@ -4,6 +4,7 @@ const cors = require('cors');
 const clusterRoutes = require('./routes/clusters');
 const toolRoutes = require('./routes/tools');
 const kindRoutes = require('./routes/kind');
+const gitopsRoutes = require('./routes/gitops');
 const helmRoutes = require('./routes/helm');
 const logsRoutes = require('./routes/logs');
 const manifestRoutes = require('./routes/manifests');
@@ -26,6 +27,7 @@ app.get('/readyz', (req, res) => {
 app.use('/api/clusters', clusterRoutes);
 app.use('/api/tools', toolRoutes);
 app.use('/api/kind', kindRoutes);
+app.use('/api/gitops', gitopsRoutes);
 app.use('/api/helm', helmRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/manifests', manifestRoutes);

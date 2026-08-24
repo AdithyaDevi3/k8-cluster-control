@@ -167,6 +167,7 @@ async function bootstrap() {
       .join(' ');
 
     await renderClustersView();
+      await refreshGitOpsStatus(); // Refresh GitOps status when clusters are loaded
 
     if (selectedCluster) {
       await renderClusterInfo(selectedCluster);
@@ -226,6 +227,15 @@ async function bootstrap() {
       ui.renderHelmReleases(cluster, { releases: [] });
     }
   }
+
+    async function refreshGitOpsStatus() {
+      try {
+        const payload = await ui.fetchGitOpsStatus();
+        ui.renderGitOpsStatus(payload);
+      } catch (error) {
+        ui.renderGitOpsStatus({ connected: false, error: error.message });
+      }
+    }
 
   async function runHelmAction(cluster, action) {
     const payload = { releaseName: window.prompt(`${action}: enter release name`) };
